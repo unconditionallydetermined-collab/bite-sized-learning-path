@@ -18,6 +18,7 @@ import { Route as AuthenticatedLearnUnitIdRouteImport } from './routes/_authenti
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedSettingsProfileIndexRouteImport } from './routes/_authenticated/settings/profile/index'
 import { Route as AuthenticatedSettingsProfileAdvancedIndexRouteImport } from './routes/_authenticated/settings/profile/advanced/index'
+import { Route as AuthenticatedSettingsProfileAdvancedContentLibraryRouteImport } from './routes/_authenticated/settings/profile/advanced/content-library'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -67,6 +68,12 @@ const AuthenticatedSettingsProfileAdvancedIndexRoute =
     path: '/settings/profile/advanced/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSettingsProfileAdvancedContentLibraryRoute =
+  AuthenticatedSettingsProfileAdvancedContentLibraryRouteImport.update({
+    id: '/settings/profile/advanced/content-library',
+    path: '/settings/profile/advanced/content-library',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -76,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/learn/$unitId': typeof AuthenticatedLearnUnitIdRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
+  '/settings/profile/advanced/content-library': typeof AuthenticatedSettingsProfileAdvancedContentLibraryRoute
   '/settings/profile/advanced/': typeof AuthenticatedSettingsProfileAdvancedIndexRoute
 }
 export interface FileRoutesByTo {
@@ -86,6 +94,7 @@ export interface FileRoutesByTo {
   '/learn/$unitId': typeof AuthenticatedLearnUnitIdRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
+  '/settings/profile/advanced/content-library': typeof AuthenticatedSettingsProfileAdvancedContentLibraryRoute
   '/settings/profile/advanced': typeof AuthenticatedSettingsProfileAdvancedIndexRoute
 }
 export interface FileRoutesById {
@@ -98,6 +107,7 @@ export interface FileRoutesById {
   '/_authenticated/learn/$unitId': typeof AuthenticatedLearnUnitIdRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
+  '/_authenticated/settings/profile/advanced/content-library': typeof AuthenticatedSettingsProfileAdvancedContentLibraryRoute
   '/_authenticated/settings/profile/advanced/': typeof AuthenticatedSettingsProfileAdvancedIndexRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/learn/$unitId'
     | '/settings/'
     | '/settings/profile/'
+    | '/settings/profile/advanced/content-library'
     | '/settings/profile/advanced/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/learn/$unitId'
     | '/settings'
     | '/settings/profile'
+    | '/settings/profile/advanced/content-library'
     | '/settings/profile/advanced'
   id:
     | '__root__'
@@ -131,6 +143,7 @@ export interface FileRouteTypes {
     | '/_authenticated/learn/$unitId'
     | '/_authenticated/settings/'
     | '/_authenticated/settings/profile/'
+    | '/_authenticated/settings/profile/advanced/content-library'
     | '/_authenticated/settings/profile/advanced/'
   fileRoutesById: FileRoutesById
 }
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsProfileAdvancedIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/settings/profile/advanced/content-library': {
+      id: '/_authenticated/settings/profile/advanced/content-library'
+      path: '/settings/profile/advanced/content-library'
+      fullPath: '/settings/profile/advanced/content-library'
+      preLoaderRoute: typeof AuthenticatedSettingsProfileAdvancedContentLibraryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
@@ -214,6 +234,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedLearnUnitIdRoute: typeof AuthenticatedLearnUnitIdRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
   AuthenticatedSettingsProfileIndexRoute: typeof AuthenticatedSettingsProfileIndexRoute
+  AuthenticatedSettingsProfileAdvancedContentLibraryRoute: typeof AuthenticatedSettingsProfileAdvancedContentLibraryRoute
   AuthenticatedSettingsProfileAdvancedIndexRoute: typeof AuthenticatedSettingsProfileAdvancedIndexRoute
 }
 
@@ -224,6 +245,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
   AuthenticatedSettingsProfileIndexRoute:
     AuthenticatedSettingsProfileIndexRoute,
+  AuthenticatedSettingsProfileAdvancedContentLibraryRoute:
+    AuthenticatedSettingsProfileAdvancedContentLibraryRoute,
   AuthenticatedSettingsProfileAdvancedIndexRoute:
     AuthenticatedSettingsProfileAdvancedIndexRoute,
 }
