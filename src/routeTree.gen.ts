@@ -10,33 +10,147 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
+import { Route as AuthenticatedPathRouteImport } from './routes/_authenticated/path'
+import { Route as AuthenticatedLearnUnitIdRouteImport } from './routes/_authenticated/learn.$unitId'
+import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
+import { Route as AuthenticatedSettingsProfileIndexRouteImport } from './routes/_authenticated/settings/profile/index'
+import { Route as AuthenticatedSettingsProfileAdvancedIndexRouteImport } from './routes/_authenticated/settings/profile/advanced/index'
+import { Route as AuthenticatedSettingsProfileAdvancedContentLibraryRouteImport } from './routes/_authenticated/settings/profile/advanced/content-library'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPathRoute = AuthenticatedPathRouteImport.update({
+  id: '/path',
+  path: '/path',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedLearnUnitIdRoute =
+  AuthenticatedLearnUnitIdRouteImport.update({
+    id: '/learn/$unitId',
+    path: '/learn/$unitId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSettingsIndexRoute =
+  AuthenticatedSettingsIndexRouteImport.update({
+    id: '/settings/',
+    path: '/settings/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSettingsProfileIndexRoute =
+  AuthenticatedSettingsProfileIndexRouteImport.update({
+    id: '/settings/profile/',
+    path: '/settings/profile/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSettingsProfileAdvancedIndexRoute =
+  AuthenticatedSettingsProfileAdvancedIndexRouteImport.update({
+    id: '/settings/profile/advanced/',
+    path: '/settings/profile/advanced/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedSettingsProfileAdvancedContentLibraryRoute =
+  AuthenticatedSettingsProfileAdvancedContentLibraryRouteImport.update({
+    id: '/settings/profile/advanced/content-library',
+    path: '/settings/profile/advanced/content-library',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/path': typeof AuthenticatedPathRoute
+  '/learn/$unitId': typeof AuthenticatedLearnUnitIdRoute
+  '/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
+  '/settings/profile/advanced/content-library': typeof AuthenticatedSettingsProfileAdvancedContentLibraryRoute
+  '/settings/profile/advanced/': typeof AuthenticatedSettingsProfileAdvancedIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
+  '/path': typeof AuthenticatedPathRoute
+  '/learn/$unitId': typeof AuthenticatedLearnUnitIdRoute
+  '/settings': typeof AuthenticatedSettingsIndexRoute
+  '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
+  '/settings/profile/advanced/content-library': typeof AuthenticatedSettingsProfileAdvancedContentLibraryRoute
+  '/settings/profile/advanced': typeof AuthenticatedSettingsProfileAdvancedIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
+  '/_authenticated/path': typeof AuthenticatedPathRoute
+  '/_authenticated/learn/$unitId': typeof AuthenticatedLearnUnitIdRoute
+  '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
+  '/_authenticated/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
+  '/_authenticated/settings/profile/advanced/content-library': typeof AuthenticatedSettingsProfileAdvancedContentLibraryRoute
+  '/_authenticated/settings/profile/advanced/': typeof AuthenticatedSettingsProfileAdvancedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/onboarding'
+    | '/path'
+    | '/learn/$unitId'
+    | '/settings/'
+    | '/settings/profile/'
+    | '/settings/profile/advanced/content-library'
+    | '/settings/profile/advanced/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/onboarding'
+    | '/path'
+    | '/learn/$unitId'
+    | '/settings'
+    | '/settings/profile'
+    | '/settings/profile/advanced/content-library'
+    | '/settings/profile/advanced'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/onboarding'
+    | '/_authenticated/path'
+    | '/_authenticated/learn/$unitId'
+    | '/_authenticated/settings/'
+    | '/_authenticated/settings/profile/'
+    | '/_authenticated/settings/profile/advanced/content-library'
+    | '/_authenticated/settings/profile/advanced/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +162,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/path': {
+      id: '/_authenticated/path'
+      path: '/path'
+      fullPath: '/path'
+      preLoaderRoute: typeof AuthenticatedPathRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/learn/$unitId': {
+      id: '/_authenticated/learn/$unitId'
+      path: '/learn/$unitId'
+      fullPath: '/learn/$unitId'
+      preLoaderRoute: typeof AuthenticatedLearnUnitIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings/': {
+      id: '/_authenticated/settings/'
+      path: '/settings'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof AuthenticatedSettingsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings/profile/': {
+      id: '/_authenticated/settings/profile/'
+      path: '/settings/profile'
+      fullPath: '/settings/profile/'
+      preLoaderRoute: typeof AuthenticatedSettingsProfileIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings/profile/advanced/': {
+      id: '/_authenticated/settings/profile/advanced/'
+      path: '/settings/profile/advanced'
+      fullPath: '/settings/profile/advanced/'
+      preLoaderRoute: typeof AuthenticatedSettingsProfileAdvancedIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/settings/profile/advanced/content-library': {
+      id: '/_authenticated/settings/profile/advanced/content-library'
+      path: '/settings/profile/advanced/content-library'
+      fullPath: '/settings/profile/advanced/content-library'
+      preLoaderRoute: typeof AuthenticatedSettingsProfileAdvancedContentLibraryRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
+  AuthenticatedPathRoute: typeof AuthenticatedPathRoute
+  AuthenticatedLearnUnitIdRoute: typeof AuthenticatedLearnUnitIdRoute
+  AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
+  AuthenticatedSettingsProfileIndexRoute: typeof AuthenticatedSettingsProfileIndexRoute
+  AuthenticatedSettingsProfileAdvancedContentLibraryRoute: typeof AuthenticatedSettingsProfileAdvancedContentLibraryRoute
+  AuthenticatedSettingsProfileAdvancedIndexRoute: typeof AuthenticatedSettingsProfileAdvancedIndexRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
+  AuthenticatedPathRoute: AuthenticatedPathRoute,
+  AuthenticatedLearnUnitIdRoute: AuthenticatedLearnUnitIdRoute,
+  AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
+  AuthenticatedSettingsProfileIndexRoute:
+    AuthenticatedSettingsProfileIndexRoute,
+  AuthenticatedSettingsProfileAdvancedContentLibraryRoute:
+    AuthenticatedSettingsProfileAdvancedContentLibraryRoute,
+  AuthenticatedSettingsProfileAdvancedIndexRoute:
+    AuthenticatedSettingsProfileAdvancedIndexRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

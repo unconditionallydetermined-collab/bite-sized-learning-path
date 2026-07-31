@@ -1,24 +1,82 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { Clock, Flame, Shuffle, Sparkles } from "lucide-react";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+import { useAuth } from "@/hooks/useAuth";
+
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({
+    meta: [
+      { title: "BitQuest — Micro-learning quests from any video course" },
+      {
+        name: "description",
+        content:
+          "Paste any video course and BitQuest turns it into 60-90 second actionable bits, quests, and streaks. Installable on your phone.",
+      },
+      { property: "og:title", content: "BitQuest — Micro-learning quests from any video course" },
+      {
+        property: "og:description",
+        content: "Turn long videos into bite-size quests with streaks, mixed modules, and a custom player.",
+      },
+    ],
+  }),
+  component: Landing,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+const FEATURES = [
+  { icon: Sparkles, title: "Paste and go", body: "Raw course text becomes quests, units, and modules." },
+  { icon: Clock, title: "60-90s bits", body: "Every unit is chopped into actionable bits you can finish." },
+  { icon: Shuffle, title: "Mixed modules", body: "Units from different quests get combined automatically." },
+  { icon: Flame, title: "Daily streaks", body: "Show up every day and keep the flame alive." },
+];
+
+function Landing() {
+  const { session, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && session) void navigate({ to: "/path", replace: true });
+  }, [loading, session, navigate]);
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen bg-background">
+      <main className="mx-auto max-w-2xl px-5 py-14">
+        <img
+          src="/images/icon-512.png"
+          alt="BitQuest app icon"
+          width={84}
+          height={84}
+          className="rounded-3xl shadow-chunky"
+        />
+        <h1 className="mt-6 text-4xl leading-tight">
+          Learn any course in <span className="text-primary">tiny bits</span>.
+        </h1>
+        <p className="mt-3 text-base text-muted-foreground">
+          Paste your course text, and BitQuest builds a Duolingo-style path of 60-90 second learning
+          bits with streaks, quests, and a distraction-free player.
+        </p>
+        <div className="mt-7 flex flex-wrap gap-3">
+          <Link
+            to="/auth"
+            className="btn-chunky bg-primary px-6 py-3.5 text-sm text-primary-foreground"
+          >
+            Start free
+          </Link>
+          <Link to="/auth" className="btn-chunky bg-secondary px-6 py-3.5 text-sm text-secondary-foreground">
+            I have an account
+          </Link>
+        </div>
+
+        <ul className="mt-12 grid gap-3 sm:grid-cols-2">
+          {FEATURES.map((feature) => (
+            <li key={feature.title} className="rounded-3xl border-2 border-border bg-card p-5">
+              <feature.icon className="size-5 text-primary" />
+              <h2 className="mt-3 font-display text-lg">{feature.title}</h2>
+              <p className="mt-1 text-sm text-muted-foreground">{feature.body}</p>
+            </li>
+          ))}
+        </ul>
+      </main>
     </div>
   );
 }
