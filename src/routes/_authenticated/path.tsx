@@ -5,6 +5,7 @@ import { Check, ChevronDown, Play, Search, Shuffle, SkipForward } from "lucide-r
 import { toast } from "sonner";
 
 import { AppShell, EmptyPath } from "@/components/AppShell";
+import { BitLessonTrail, NextUpCard, findNextUp } from "@/components/LessonNodes";
 import { SkipModal } from "@/components/SkipModal";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +36,7 @@ function PathPage() {
   const queryClient = useQueryClient();
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+  const [autoOpened, setAutoOpened] = useState(false);
   const [skipTarget, setSkipTarget] = useState<{ id: string; title: string } | null>(null);
 
   const { data: modules = [], isLoading } = useQuery({
@@ -88,9 +90,18 @@ function PathPage() {
   };
 
   const completedCount = modules.filter((module) => module.status === "completed").length;
+  const nextUp = useMemo(() => findNextUp(modules), [modules]);
+
+  // Open the module holding the current bit as soon as the path loads.
+  useEffect(() => {
+    if (autoOpened || !nextUp) return;
+    setOpenId(nextUp.module.id);
+    setAutoOpened(true);
+  }, [autoOpened, nextUp]);
 
   return (
     <AppShell streak={profile?.streak_count}>
+      {nextUp && <NextUpCard next={nextUp} />}
       <div className="mb-5">
         <h1 className="text-2xl">Your quest path</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -166,25 +177,31 @@ function PathPage() {
                         {module.units.map((unit) => (
                           <div
                             key={unit.id}
-                            className="flex items-center gap-3 rounded-2xl bg-secondary/60 px-3 py-2.5"
+                            className="flex items-start gap-3 rounded-2xl bg-secondary/60 px-3 py-2.5"
                           >
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-bold">{unit.title}</p>
-                              <p className="text-[11px] text-muted-foreground">
-                                {unit.questTitle} ·{" "}
-                                {unit.completed
-                                  ? "unit complete"
-                                  : `${unit.bitsDone.length} bit(s) done`}
-                              </p>
+                            <div className="min-w-0 flex-1 space-y-2">
+                              <div className="flex items-center gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-bold">{unit.title}</p>
+                                  <p className="text-[11px] text-muted-foreground">
+                                    {unit.questTitle} ·{" "}
+                                    {unit.completed
+                                      ? "unit complete"
+                                      : `${unit.bitsDone.length} lesson(s) done`}
+                                  </p>
+                                </div>
+                                <Link
+                                  to="/learn/$unitId"
+                                  params={{ unitId: unit.id }}
+                                  search={{ bit: undefined }}
+                                  className="btn-chunky flex items-center gap-1.5 bg-primary px-3 py-2 text-[11px] text-primary-foreground"
+                                >
+                                  <Play className="size-3.5" />
+                                  {unit.bitsDone.length > 0 ? "Resume" : "Start"}
+                                </Link>
+                              </div>
+                              <BitLessonTrail unit={unit} />
                             </div>
-                            <Link
-                              to="/learn/$unitId"
-                              params={{ unitId: unit.id }}
-                              className="btn-chunky flex items-center gap-1.5 bg-primary px-3 py-2 text-[11px] text-primary-foreground"
-                            >
-                              <Play className="size-3.5" />
-                              {unit.bitsDone.length > 0 ? "Resume" : "Start"}
-                            </Link>
                           </div>
                         ))}
 

@@ -10,6 +10,10 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Bit } from "@/lib/bits";
 
 export const Route = createFileRoute("/_authenticated/learn/$unitId")({
+  validateSearch: (search: Record<string, unknown>): { bit?: number } => {
+    const raw = Number(search['bit']);
+    return Number.isFinite(raw) && raw >= 0 ? { bit: Math.floor(raw) } : {};
+  },
   head: () => ({
     meta: [
       { title: "Learning bit — BitQuest" },
@@ -29,6 +33,7 @@ export const Route = createFileRoute("/_authenticated/learn/$unitId")({
 
 function LearnPage() {
   const { unitId } = Route.useParams();
+  const { bit: startBit } = Route.useSearch();
   const { user } = useAuth();
   const userId = user?.id ?? "";
   const navigate = useNavigate();
@@ -101,6 +106,7 @@ function LearnPage() {
           <BitPlayer
             videoId={unit.video_id ?? ""}
             completedBits={data?.bitsDone ?? []}
+            startBit={startBit}
             onBitComplete={(bit) => void saveBit(bit)}
             onUnitComplete={() => void finishUnit()}
           />

@@ -201,6 +201,50 @@
   animation: node-pop 320ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* Duolingo-style lesson node halo for the current bit. */
+@utility node-halo {
+  position: relative;
+
+  &::after {
+    content: "";
+    position: absolute;
+    inset: -6px;
+    border-radius: 9999px;
+    border: 3px solid var(--gold);
+    animation: node-halo 1.8s ease-out infinite;
+  }
+}
+
+@utility rise-in {
+  animation: rise-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes node-halo {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
+@keyframes rise-in {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes node-pop {
   0% {
     transform: scale(0.85);

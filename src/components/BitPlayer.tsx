@@ -43,11 +43,13 @@ function loadIframeApi(): Promise<void> {
 export function BitPlayer({
   videoId,
   completedBits,
+  startBit,
   onBitComplete,
   onUnitComplete,
 }: {
   videoId: string;
   completedBits: number[];
+  startBit?: number | undefined;
   onBitComplete: (bit: Bit) => void;
   onUnitComplete: () => void;
 }) {
@@ -84,7 +86,9 @@ export function BitPlayer({
             if (cancelled) return;
             const plan = buildBits(event.target.getDuration() || 300);
             const firstUnfinished = plan.findIndex((bit) => !completedBits.includes(bit.index));
-            const startIndex = firstUnfinished === -1 ? 0 : firstUnfinished;
+            const requested =
+              startBit !== undefined && startBit >= 0 && startBit < plan.length ? startBit : null;
+            const startIndex = requested ?? (firstUnfinished === -1 ? 0 : firstUnfinished);
             setBits(plan);
             setActiveIndex(startIndex);
             event.target.seekTo(plan[startIndex]!.start, true);
@@ -101,7 +105,7 @@ export function BitPlayer({
       playerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoId]);
+  }, [videoId, startBit]);
 
   useEffect(() => {
     if (!ready || !activeBit) return;
