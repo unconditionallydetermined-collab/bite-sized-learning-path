@@ -195,7 +195,7 @@ function PathPage() {
                                 <Link
                                   to="/learn/$unitId"
                                   params={{ unitId: unit.id }}
-                                  search={{ bit: undefined }}
+                                  search={{}}
                                   className="btn-chunky flex items-center gap-1.5 bg-primary px-3 py-2 text-[11px] text-primary-foreground"
                                 >
                                   <Play className="size-3.5" />
