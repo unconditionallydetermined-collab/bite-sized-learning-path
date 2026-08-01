@@ -1,0 +1,3 @@
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS gems integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS streak_freezes integer NOT NULL DEFAULT 0;

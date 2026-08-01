@@ -6,8 +6,10 @@ import { toast } from "sonner";
 
 import { AppShell, EmptyPath } from "@/components/AppShell";
 import { BitLessonTrail, NextUpCard, findNextUp } from "@/components/LessonNodes";
+import { Mascot } from "@/components/Mascot";
 import { SkipModal } from "@/components/SkipModal";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchPath, touchStreak } from "@/lib/course-data";
 
@@ -45,18 +47,7 @@ function PathPage() {
     enabled: Boolean(userId),
   });
 
-  const { data: profile } = useQuery({
-    queryKey: ["profile", userId],
-    enabled: Boolean(userId),
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("streak_count, longest_streak, onboarded")
-        .eq("id", userId)
-        .maybeSingle();
-      return data;
-    },
-  });
+  const { data: profile } = useProfile();
 
   useEffect(() => {
     if (!userId) return;
@@ -100,7 +91,18 @@ function PathPage() {
   }, [autoOpened, nextUp]);
 
   return (
-    <AppShell streak={profile?.streak_count}>
+    <AppShell>
+      <div className="mb-5 flex items-center gap-3 rounded-3xl border-2 border-border bg-card p-4 shadow-chunky-sm">
+        <Mascot mood={nextUp ? "neutral" : "happy"} size={72} />
+        <div className="min-w-0">
+          <p className="font-display text-base">
+            {nextUp ? "Ready for one bit?" : "Path clear — nice work!"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {profile?.streak_count ?? 0} day streak · {profile?.gems ?? 0} gems
+          </p>
+        </div>
+      </div>
       {nextUp && <NextUpCard next={nextUp} />}
       <div className="mb-5">
         <h1 className="text-2xl">Your quest path</h1>
@@ -193,7 +195,7 @@ function PathPage() {
                                 <Link
                                   to="/learn/$unitId"
                                   params={{ unitId: unit.id }}
-                                  search={{ bit: undefined }}
+                                  search={{}}
                                   className="btn-chunky flex items-center gap-1.5 bg-primary px-3 py-2 text-[11px] text-primary-foreground"
                                 >
                                   <Play className="size-3.5" />

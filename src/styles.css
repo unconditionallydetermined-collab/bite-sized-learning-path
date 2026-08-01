@@ -19,8 +19,8 @@
  */
 
 @theme inline {
-  --font-display: "Baloo 2", ui-rounded, system-ui, sans-serif;
-  --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Quicksand", ui-rounded, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -71,45 +71,45 @@
 }
 
 :root {
-  --radius: 1rem;
-  --background: oklch(0.995 0.005 120);
-  --foreground: oklch(0.32 0.02 150);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.32 0.02 150);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.32 0.02 150);
-  --primary: oklch(0.75 0.22 133);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.96 0.03 130);
-  --secondary-foreground: oklch(0.42 0.12 140);
-  --muted: oklch(0.96 0.01 140);
-  --muted-foreground: oklch(0.58 0.02 150);
-  --accent: oklch(0.94 0.05 130);
-  --accent-foreground: oklch(0.38 0.12 140);
-  --destructive: oklch(0.62 0.23 25);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.9 0.015 145);
-  --input: oklch(0.9 0.015 145);
-  --ring: oklch(0.75 0.22 133);
-  --gold: oklch(0.85 0.17 87);
-  --gold-foreground: oklch(0.35 0.08 80);
-  --sky: oklch(0.72 0.16 235);
-  --sky-foreground: oklch(1 0 0);
-  --track: oklch(0.92 0.02 145);
-  --chunk-shadow: oklch(0.62 0.19 135);
+  --radius: 1.25rem;
+  --background: oklch(0.19 0.005 248);
+  --foreground: oklch(0.914 0.004 286);
+  --card: oklch(0.242 0.005 248);
+  --card-foreground: oklch(0.914 0.004 286);
+  --popover: oklch(0.284 0.005 248);
+  --popover-foreground: oklch(0.914 0.004 286);
+  --primary: oklch(0.832 0.166 80.4);
+  --primary-foreground: oklch(0.312 0.064 82);
+  --secondary: oklch(0.818 0.102 139.4);
+  --secondary-foreground: oklch(0.302 0.09 142.7);
+  --muted: oklch(0.284 0.005 248);
+  --muted-foreground: oklch(0.657 0.037 78.5);
+  --accent: oklch(0.386 0.093 141.7);
+  --accent-foreground: oklch(0.818 0.102 139.4);
+  --destructive: oklch(0.838 0.089 26.8);
+  --destructive-foreground: oklch(0.417 0.17 27.4);
+  --border: oklch(0.328 0.004 248);
+  --input: oklch(0.328 0.004 248);
+  --ring: oklch(0.832 0.166 80.4);
+  --gold: oklch(0.832 0.166 80.4);
+  --gold-foreground: oklch(0.312 0.064 82);
+  --sky: oklch(0.835 0.102 51.4);
+  --sky-foreground: oklch(0.36 0.1 55);
+  --track: oklch(0.328 0.004 248);
+  --chunk-shadow: oklch(0.5 0.115 80);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.208 0.042 265.755);
-  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
-  --sidebar-accent: oklch(0.968 0.007 247.896);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.929 0.013 255.508);
-  --sidebar-ring: oklch(0.704 0.04 256.788);
+  --sidebar: oklch(0.242 0.005 248);
+  --sidebar-foreground: oklch(0.914 0.004 286);
+  --sidebar-primary: oklch(0.832 0.166 80.4);
+  --sidebar-primary-foreground: oklch(0.312 0.064 82);
+  --sidebar-accent: oklch(0.284 0.005 248);
+  --sidebar-accent-foreground: oklch(0.914 0.004 286);
+  --sidebar-border: oklch(0.328 0.004 248);
+  --sidebar-ring: oklch(0.832 0.166 80.4);
 }
 
 .dark {
@@ -254,5 +254,48 @@
   }
   100% {
     transform: scale(1);
+  }
+}
+
+/* Mascot idle float. */
+@utility mascot-bounce {
+  animation: mascot-bounce 4s ease-in-out infinite;
+}
+
+@keyframes mascot-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Floating "+N gems" reward. */
+@utility gem-float {
+  animation: gem-float 1.1s ease-out forwards;
+}
+
+@keyframes gem-float {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+  }
+  25% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.05);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-26px) scale(1);
+  }
+}
+
+@utility tap-bounce {
+  transition: transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  &:active {
+    transform: scale(0.94);
   }
 }

@@ -87,7 +87,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "BitQuest turns video courses into 60-90 second learning bits with quests, streaks, and a custom player.",
       },
-      { name: "theme-color", content: "#58cc02" },
+      { name: "theme-color", content: "#ffba20" },
       { property: "og:title", content: "BitQuest — Micro-learning quests" },
       {
         property: "og:description",
@@ -109,7 +109,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
         rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap",
+        href: "https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap",
       },
     ],
   }),

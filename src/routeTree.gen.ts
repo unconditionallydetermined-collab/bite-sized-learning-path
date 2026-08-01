@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedMusicRouteImport } from './routes/_authenticated/music'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedPathRouteImport } from './routes/_authenticated/path'
+import { Route as AuthenticatedShopRouteImport } from './routes/_authenticated/shop'
 import { Route as AuthenticatedLearnUnitIdRouteImport } from './routes/_authenticated/learn.$unitId'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedSettingsProfileIndexRouteImport } from './routes/_authenticated/settings/profile/index'
@@ -34,6 +36,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedMusicRoute = AuthenticatedMusicRouteImport.update({
+  id: '/music',
+  path: '/music',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
@@ -42,6 +49,11 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
 const AuthenticatedPathRoute = AuthenticatedPathRouteImport.update({
   id: '/path',
   path: '/path',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedShopRoute = AuthenticatedShopRouteImport.update({
+  id: '/shop',
+  path: '/shop',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedLearnUnitIdRoute =
@@ -78,8 +90,10 @@ const AuthenticatedSettingsProfileAdvancedContentLibraryRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/music': typeof AuthenticatedMusicRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/path': typeof AuthenticatedPathRoute
+  '/shop': typeof AuthenticatedShopRoute
   '/learn/$unitId': typeof AuthenticatedLearnUnitIdRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
@@ -89,8 +103,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/music': typeof AuthenticatedMusicRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/path': typeof AuthenticatedPathRoute
+  '/shop': typeof AuthenticatedShopRoute
   '/learn/$unitId': typeof AuthenticatedLearnUnitIdRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
@@ -102,8 +118,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/music': typeof AuthenticatedMusicRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/path': typeof AuthenticatedPathRoute
+  '/_authenticated/shop': typeof AuthenticatedShopRoute
   '/_authenticated/learn/$unitId': typeof AuthenticatedLearnUnitIdRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
@@ -115,8 +133,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/music'
     | '/onboarding'
     | '/path'
+    | '/shop'
     | '/learn/$unitId'
     | '/settings/'
     | '/settings/profile/'
@@ -126,8 +146,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/music'
     | '/onboarding'
     | '/path'
+    | '/shop'
     | '/learn/$unitId'
     | '/settings'
     | '/settings/profile'
@@ -138,8 +160,10 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/music'
     | '/_authenticated/onboarding'
     | '/_authenticated/path'
+    | '/_authenticated/shop'
     | '/_authenticated/learn/$unitId'
     | '/_authenticated/settings/'
     | '/_authenticated/settings/profile/'
@@ -176,6 +200,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/music': {
+      id: '/_authenticated/music'
+      path: '/music'
+      fullPath: '/music'
+      preLoaderRoute: typeof AuthenticatedMusicRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/onboarding': {
       id: '/_authenticated/onboarding'
       path: '/onboarding'
@@ -188,6 +219,13 @@ declare module '@tanstack/react-router' {
       path: '/path'
       fullPath: '/path'
       preLoaderRoute: typeof AuthenticatedPathRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/shop': {
+      id: '/_authenticated/shop'
+      path: '/shop'
+      fullPath: '/shop'
+      preLoaderRoute: typeof AuthenticatedShopRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/learn/$unitId': {
@@ -229,8 +267,10 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedMusicRoute: typeof AuthenticatedMusicRoute
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedPathRoute: typeof AuthenticatedPathRoute
+  AuthenticatedShopRoute: typeof AuthenticatedShopRoute
   AuthenticatedLearnUnitIdRoute: typeof AuthenticatedLearnUnitIdRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
   AuthenticatedSettingsProfileIndexRoute: typeof AuthenticatedSettingsProfileIndexRoute
@@ -239,8 +279,10 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedMusicRoute: AuthenticatedMusicRoute,
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedPathRoute: AuthenticatedPathRoute,
+  AuthenticatedShopRoute: AuthenticatedShopRoute,
   AuthenticatedLearnUnitIdRoute: AuthenticatedLearnUnitIdRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
   AuthenticatedSettingsProfileIndexRoute:
