@@ -1,30 +1,40 @@
 import { Link } from "@tanstack/react-router";
-import { Flame, Settings, Sparkles } from "lucide-react";
+import { Flame, Gem, Settings, Sparkles } from "lucide-react";
 import type { ReactNode } from "react";
 
+import { BottomNav } from "@/components/BottomNav";
+import { useProfile } from "@/hooks/useProfile";
+
 export function AppShell({
-  streak,
   children,
+  hideNav = false,
 }: {
+  /** Deprecated: streak now comes from the shared profile query. */
   streak?: number | null | undefined;
+  hideNav?: boolean;
   children: ReactNode;
 }) {
+  const { data: profile } = useProfile();
+
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background pb-28">
       <header className="sticky top-0 z-40 border-b-2 border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
-          <Link to="/path" className="flex items-center gap-2">
-            <img src="/images/icon-512.png" alt="BitQuest" width={32} height={32} className="rounded-lg" />
+          <Link to="/path" className="tap-bounce flex items-center gap-2">
+            <img src="/images/icon-512.png" alt="BitQuest" width={32} height={32} className="rounded-xl" />
             <span className="font-display text-lg">BitQuest</span>
           </Link>
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1.5 rounded-full border-2 border-border bg-gold/25 px-3 py-1.5 text-sm font-extrabold text-gold-foreground">
-              <Flame className="size-4" /> {streak ?? 0}
+            <span className="flex items-center gap-1.5 rounded-full border-2 border-border bg-sky/15 px-3 py-1.5 text-sm font-extrabold text-sky">
+              <Flame className="size-4" /> {profile?.streak_count ?? 0}
+            </span>
+            <span className="flex items-center gap-1.5 rounded-full border-2 border-border bg-primary/15 px-3 py-1.5 text-sm font-extrabold text-primary">
+              <Gem className="size-4" /> {profile?.gems ?? 0}
             </span>
             <Link
               to="/settings"
               aria-label="Settings"
-              className="rounded-full border-2 border-border p-2 text-muted-foreground transition-colors hover:text-primary"
+              className="tap-bounce rounded-full border-2 border-border p-2 text-muted-foreground transition-colors hover:text-primary"
             >
               <Settings className="size-4" />
             </Link>
@@ -32,6 +42,7 @@ export function AppShell({
         </div>
       </header>
       <main className="mx-auto max-w-2xl px-4 py-6">{children}</main>
+      {!hideNav && <BottomNav />}
     </div>
   );
 }
