@@ -158,33 +158,39 @@ export type Database = {
           created_at: string
           display_name: string | null
           email: string | null
+          gems: number
           id: string
           last_active_date: string | null
           longest_streak: number
           onboarded: boolean
           streak_count: number
+          streak_freezes: number
           updated_at: string
         }
         Insert: {
           created_at?: string
           display_name?: string | null
           email?: string | null
+          gems?: number
           id: string
           last_active_date?: string | null
           longest_streak?: number
           onboarded?: boolean
           streak_count?: number
+          streak_freezes?: number
           updated_at?: string
         }
         Update: {
           created_at?: string
           display_name?: string | null
           email?: string | null
+          gems?: number
           id?: string
           last_active_date?: string | null
           longest_streak?: number
           onboarded?: boolean
           streak_count?: number
+          streak_freezes?: number
           updated_at?: string
         }
         Relationships: []
