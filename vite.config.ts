@@ -33,6 +33,15 @@ export default defineConfig({
             { src: "/images/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
             { src: "/images/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
           ],
+          shortcuts: [
+            {
+              name: "Continue streak",
+              short_name: "Continue",
+              description: "Jump straight into your next lesson bit.",
+              url: "/path",
+              icons: [{ src: "/images/icon-512.png", sizes: "512x512", type: "image/png" }],
+            },
+          ],
         },
         workbox: {
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//],
