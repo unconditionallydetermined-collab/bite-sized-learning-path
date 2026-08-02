@@ -219,6 +219,71 @@ export type Database = {
         }
         Relationships: []
       }
+      song_queue: {
+        Row: {
+          created_at: string
+          id: string
+          position: number
+          song_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          position?: number
+          song_id: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          position?: number
+          song_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "song_queue_song_id_fkey"
+            columns: ["song_id"]
+            isOneToOne: false
+            referencedRelation: "songs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      songs: {
+        Row: {
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          title: string
+          user_id: string
+          video_id: string | null
+          youtube_url: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          title: string
+          user_id: string
+          video_id?: string | null
+          youtube_url: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          title?: string
+          user_id?: string
+          video_id?: string | null
+          youtube_url?: string
+        }
+        Relationships: []
+      }
       units: {
         Row: {
           created_at: string
