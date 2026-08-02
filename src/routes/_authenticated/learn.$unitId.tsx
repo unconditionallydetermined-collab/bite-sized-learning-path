@@ -1,13 +1,26 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
-import { BitPlayer } from "@/components/BitPlayer";
+import { ChestReveal, CompletionCelebration } from "@/components/GemReward";
+import { ImmersivePlayer } from "@/components/ImmersivePlayer";
+import { SongOffer } from "@/components/SongOffer";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
-import type { Bit } from "@/lib/bits";
+import { buildBits, formatClock, type Bit } from "@/lib/bits";
+import { playBackgroundAudio } from "@/lib/audio";
+import { UNIT_COMPLETE_BIT_INDEX, touchStreak } from "@/lib/course-data";
+import {
+  awardGems,
+  isStreakMilestone,
+  rollBitReward,
+  rollMilestoneChest,
+  type GemDrop,
+} from "@/lib/gems";
+import { fetchQueue, fetchSongs, markSongPlayed, saveSongForLater, unlockSong, type Song } from "@/lib/songs";
 
 export const Route = createFileRoute("/_authenticated/learn/$unitId")({
   validateSearch: (search: Record<string, unknown>): { bit?: number } => {
@@ -38,6 +51,17 @@ function LearnPage() {
   const userId = user?.id ?? "";
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: profile } = useProfile();
+
+  const [bits, setBits] = useState<Bit[]>([]);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [chest, setChest] = useState<GemDrop | null>(null);
+  const [runGems, setRunGems] = useState(0);
+  const [runBits, setRunBits] = useState(0);
+  const [celebrating, setCelebrating] = useState(false);
+  const [songOffer, setSongOffer] = useState<Song | null>(null);
+  const [songPlaying, setSongPlaying] = useState<Song | null>(null);
+  const [replayKey, setReplayKey] = useState(0);
 
   const { data, isLoading } = useQuery({
     queryKey: ["unit", unitId, userId],
@@ -54,12 +78,23 @@ function LearnPage() {
       if (unitResult.error) throw unitResult.error;
       return {
         unit: unitResult.data,
-        bitsDone: (bitResult.data ?? []).map((row) => row.bit_index),
+        bitsDone: (bitResult.data ?? []).map((row) => row.bit_index).filter((index) => index >= 0),
       };
     },
   });
 
   const unit = data?.unit;
+  const bitsDone = data?.bitsDone ?? [];
+  const activeBit = activeIndex !== null ? bits[activeIndex] : undefined;
+
+  const planBits = (duration: number) => {
+    const plan = buildBits(duration || 300);
+    setBits(plan);
+    const firstUnfinished = plan.findIndex((bit) => !bitsDone.includes(bit.index));
+    const requested =
+      startBit !== undefined && startBit >= 0 && startBit < plan.length ? startBit : null;
+    setActiveIndex(requested ?? (firstUnfinished === -1 ? 0 : firstUnfinished));
+  };
 
   const saveBit = async (bit: Bit) => {
     const { error } = await supabase.from("bit_progress").upsert(
@@ -72,45 +107,174 @@ function LearnPage() {
       { onConflict: "user_id,unit_id,bit_index" },
     );
     if (error) toast.error(error.message);
-    else void queryClient.invalidateQueries({ queryKey: ["unit", unitId, userId] });
   };
 
-  const finishUnit = async () => {
-    toast.success("Unit complete! Nice work.");
-    await queryClient.invalidateQueries({ queryKey: ["path", userId] });
-    void navigate({ to: "/path" });
+  /** One bit finished: credit variable gems, maybe a chest, then advance. */
+  const handleBitEnd = async () => {
+    if (!activeBit || activeIndex === null) return;
+    await saveBit(activeBit);
+    const drop = rollBitReward();
+    await awardGems(userId, drop.amount);
+    setRunGems((value) => value + drop.amount);
+    setRunBits((value) => value + 1);
+    await queryClient.invalidateQueries({ queryKey: ["profile", userId] });
+
+    const isLast = activeIndex + 1 >= bits.length;
+    if (drop.kind === "chest") {
+      setChest(drop);
+      return;
+    }
+    if (isLast) void finishVideo();
+    else advance();
   };
+
+  const advance = () => {
+    setActiveIndex((index) => (index === null ? null : index + 1));
+  };
+
+  const afterChest = () => {
+    setChest(null);
+    if (activeIndex !== null && activeIndex + 1 >= bits.length) void finishVideo();
+    else advance();
+  };
+
+  /** Fires only when EVERY bit of the video is done. */
+  const finishVideo = async () => {
+    await supabase.from("bit_progress").upsert(
+      {
+        user_id: userId,
+        unit_id: unitId,
+        bit_index: UNIT_COMPLETE_BIT_INDEX,
+        bit_seconds: 0,
+      },
+      { onConflict: "user_id,unit_id,bit_index" },
+    );
+    await touchStreak(userId);
+    const { data: fresh } = await supabase
+      .from("profiles")
+      .select("streak_count")
+      .eq("id", userId)
+      .maybeSingle();
+    const streak = Number(fresh?.streak_count ?? 0);
+    if (isStreakMilestone(streak)) {
+      const milestone = rollMilestoneChest();
+      await awardGems(userId, milestone.amount);
+      setRunGems((value) => value + milestone.amount);
+      setChest(milestone);
+    }
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["profile", userId] }),
+      queryClient.invalidateQueries({ queryKey: ["path", userId] }),
+      queryClient.invalidateQueries({ queryKey: ["unit", unitId, userId] }),
+    ]);
+    setCelebrating(true);
+  };
+
+  /** Song offer only ever appears after a full video. */
+  const openSongOffer = async () => {
+    setCelebrating(false);
+    const [songs, queue] = await Promise.all([fetchSongs(userId), fetchQueue(userId)]);
+    const taken = new Set(queue.map((entry) => entry.song_id));
+    const candidates = songs.filter((song) => !taken.has(song.id));
+    if (candidates.length === 0) {
+      void navigate({ to: "/path" });
+      return;
+    }
+    setSongOffer(candidates[Math.floor(Math.random() * candidates.length)]!);
+  };
+
+  const buySong = async (song: Song, mode: "video" | "audio") => {
+    const ok = await unlockSong(userId, song);
+    if (!ok) {
+      toast.error("Not enough gems for that song yet.");
+      return;
+    }
+    await markSongPlayed(userId, song.id);
+    await queryClient.invalidateQueries({ queryKey: ["profile", userId] });
+    setSongOffer(null);
+    if (mode === "audio") {
+      playBackgroundAudio(song.video_id ?? "");
+      toast.success("Playing in the background.");
+      void navigate({ to: "/path" });
+      return;
+    }
+    setSongPlaying(song);
+  };
+
+  if (songPlaying) {
+    return (
+      <ImmersivePlayer
+        videoId={songPlaying.video_id ?? ""}
+        label={songPlaying.title}
+        exitPrompt="Leave this song?"
+        onSegmentEnd={() => void navigate({ to: "/path" })}
+        onExit={() => void navigate({ to: "/path" })}
+      />
+    );
+  }
+
+  if (unit && unit.video_id && !isLoading) {
+    return (
+      <ImmersivePlayer
+        key={`${unit.id}-${activeIndex ?? "init"}-${replayKey}`}
+        videoId={unit.video_id}
+        segment={activeBit ? { start: activeBit.start, end: activeBit.end } : undefined}
+        label={`Bit ${(activeIndex ?? 0) + 1} / ${bits.length || "—"} · ${unit.title}`}
+        sublabel={activeBit ? formatClock(activeBit.seconds) : ""}
+        onDuration={(duration) => {
+          if (bits.length === 0) planBits(duration);
+        }}
+        onSegmentEnd={() => void handleBitEnd()}
+        onExit={() => void navigate({ to: "/path" })}
+        overlay={
+          <>
+            {chest && <ChestReveal drop={chest} onDone={afterChest} />}
+            {celebrating && (
+              <CompletionCelebration
+                gems={runGems}
+                bits={runBits}
+                streak={profile?.streak_count ?? 0}
+                onContinue={() => void openSongOffer()}
+                onReplay={() => {
+                  setCelebrating(false);
+                  setRunGems(0);
+                  setRunBits(0);
+                  setActiveIndex(0);
+                  setReplayKey((value) => value + 1);
+                }}
+                onExit={() => void navigate({ to: "/path" })}
+              />
+            )}
+            {songOffer && (
+              <SongOffer
+                song={songOffer}
+                gems={profile?.gems ?? 0}
+                onPlayVideo={() => void buySong(songOffer, "video")}
+                onPlayAudio={() => void buySong(songOffer, "audio")}
+                onSaveForLater={() => {
+                  void saveSongForLater(userId, songOffer.id);
+                  toast.success("Saved to your jukebox for later.");
+                  setSongOffer(null);
+                  void navigate({ to: "/path" });
+                }}
+                onDismiss={() => {
+                  setSongOffer(null);
+                  void navigate({ to: "/path" });
+                }}
+              />
+            )}
+          </>
+        }
+      />
+    );
+  }
 
   return (
     <AppShell>
-      <button
-        type="button"
-        onClick={() => void navigate({ to: "/path" })}
-        className="mb-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:text-primary"
-      >
-        <ArrowLeft className="size-4" /> Back to path
-      </button>
-
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading unit…</p>
-      ) : !unit ? (
-        <p className="text-sm text-muted-foreground">This unit could not be found.</p>
       ) : (
-        <div className="space-y-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-              {unit.quests?.title ?? "Quest"}
-            </p>
-            <h1 className="text-xl">{unit.title}</h1>
-          </div>
-          <BitPlayer
-            videoId={unit.video_id ?? ""}
-            completedBits={data?.bitsDone ?? []}
-            startBit={startBit}
-            onBitComplete={(bit) => void saveBit(bit)}
-            onUnitComplete={() => void finishUnit()}
-          />
-        </div>
+        <p className="text-sm text-muted-foreground">This unit has no playable video.</p>
       )}
     </AppShell>
   );
