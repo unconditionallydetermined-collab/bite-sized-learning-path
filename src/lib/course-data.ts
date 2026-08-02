@@ -195,7 +195,7 @@ function localDateKey(date: Date): string {
 export async function touchStreak(userId: string) {
   const { data: profile } = await supabase
     .from("profiles")
-    .select("streak_count, longest_streak, last_active_date")
+    .select("streak_count, longest_streak, last_active_date, streak_freezes")
     .eq("id", userId)
     .maybeSingle();
   if (!profile) return;
@@ -207,7 +207,12 @@ export async function touchStreak(userId: string) {
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
   const continued = profile.last_active_date === localDateKey(yesterday);
-  const streak = continued ? profile.streak_count + 1 : 1;
+
+  // A held streak freeze auto-applies on the first missed day, so the streak
+  // continues instead of resetting.
+  const freezes = Number(profile.streak_freezes ?? 0);
+  const usesFreeze = !continued && profile.last_active_date !== null && freezes > 0;
+  const streak = continued || usesFreeze ? profile.streak_count + 1 : 1;
 
   await supabase
     .from("profiles")
@@ -215,6 +220,7 @@ export async function touchStreak(userId: string) {
       streak_count: streak,
       longest_streak: Math.max(streak, profile.longest_streak),
       last_active_date: todayKey,
+      streak_freezes: usesFreeze ? freezes - 1 : freezes,
       updated_at: new Date().toISOString(),
     })
     .eq("id", userId);
