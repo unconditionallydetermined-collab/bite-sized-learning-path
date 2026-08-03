@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Play, X } from "lucide-react";
 
+import { haptic } from "@/lib/haptics";
+import { getPlayhead, setPlayhead } from "@/lib/playhead";
+
 type YTPlayer = {
   playVideo: () => void;
   pauseVideo: () => void;
@@ -36,12 +39,23 @@ function loadIframeApi(): Promise<void> {
 
 export type Segment = { start: number; end: number };
 
+const DOUBLE_TAP_MS = 300;
+/** Spring resistance: the further you drag, the harder it pulls back. */
+function resist(dx: number, limit = 140): number {
+  return limit * Math.tanh(dx / limit);
+}
+
 /**
  * One immersive player reused for lesson bits and full songs.
  *
- * Controls, and nothing else: single one-shot play button with an ambient
- * transition, tap anywhere to play/pause, right-to-left swipe rewinds 5s, and a
- * persistent × that asks before leaving.
+ * Layout is portrait-friendly letterboxing: the video keeps its native 16:9
+ * ratio, centred, with plain background above and below — never stretched or
+ * cropped.
+ *
+ * Gestures: tap = play/pause, quick right-to-left swipe = rewind 5s, and
+ * double-tap-and-hold then slide left/right nudges the frame horizontally with
+ * spring resistance, snapping back the moment the finger lifts. There is no
+ * persistent zoom or pan state.
  */
 export function ImmersivePlayer({
   videoId,
@@ -49,6 +63,7 @@ export function ImmersivePlayer({
   label,
   sublabel,
   exitPrompt = "Leave and lose your progress on this lesson?",
+  resume = false,
   onSegmentEnd,
   onDuration,
   onExit,
@@ -59,6 +74,8 @@ export function ImmersivePlayer({
   label?: string | undefined;
   sublabel?: string | undefined;
   exitPrompt?: string;
+  /** Resume from the stored playhead instead of the segment start. */
+  resume?: boolean;
   onSegmentEnd?: (() => void) | undefined;
   onDuration?: ((seconds: number) => void) | undefined;
   onExit: () => void;
@@ -67,6 +84,8 @@ export function ImmersivePlayer({
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const touchX = useRef<number | null>(null);
+  const lastTap = useRef(0);
+  const dragFrom = useRef<number | null>(null);
   const endedRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [started, setStarted] = useState(false);
@@ -75,9 +94,18 @@ export function ImmersivePlayer({
   const [elapsed, setElapsed] = useState(0);
   const [confirmExit, setConfirmExit] = useState(false);
   const [rewindPulse, setRewindPulse] = useState(false);
+  const [shift, setShift] = useState(0);
+  const [dragging, setDragging] = useState(false);
 
   const start = segment?.start ?? 0;
   const end = segment?.end;
+
+  const entryPoint = () => {
+    if (!resume) return start;
+    const stored = getPlayhead(videoId);
+    if (end !== undefined) return stored > start && stored < end - 1 ? stored : start;
+    return stored > 1 ? stored : start;
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -100,7 +128,7 @@ export function ImmersivePlayer({
           onReady: (event: { target: YTPlayer }) => {
             if (cancelled) return;
             onDuration?.(event.target.getDuration() || 0);
-            event.target.seekTo(start, true);
+            event.target.seekTo(entryPoint(), true);
             event.target.pauseVideo();
             setReady(true);
           },
@@ -118,6 +146,8 @@ export function ImmersivePlayer({
 
     return () => {
       cancelled = true;
+      const time = playerRef.current?.getCurrentTime?.() ?? 0;
+      if (time > 0 && !endedRef.current) setPlayhead(videoId, time);
       playerRef.current?.destroy();
       playerRef.current = null;
     };
@@ -131,6 +161,7 @@ export function ImmersivePlayer({
       if (!player) return;
       const current = player.getCurrentTime();
       setElapsed(Math.max(0, current - start));
+      setPlayhead(videoId, current);
       if (end !== undefined && current >= end - 0.25 && !endedRef.current) {
         endedRef.current = true;
         player.pauseVideo();
@@ -140,23 +171,26 @@ export function ImmersivePlayer({
     }, 250);
     return () => window.clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, started, start, end]);
+  }, [ready, started, start, end, videoId]);
 
   const beginPlayback = useCallback(() => {
     const player = playerRef.current;
     if (!player || started) return;
+    haptic("tap");
     setAmbient(true);
     window.setTimeout(() => {
-      player.seekTo(start, true);
+      player.seekTo(entryPoint(), true);
       player.playVideo();
       setStarted(true);
       setPlaying(true);
     }, 620);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [start, started]);
 
   const togglePlay = useCallback(() => {
     const player = playerRef.current;
     if (!player || !started || endedRef.current) return;
+    haptic("tap");
     if (playing) {
       player.pauseVideo();
       setPlaying(false);
@@ -169,6 +203,7 @@ export function ImmersivePlayer({
   const rewind = useCallback(() => {
     const player = playerRef.current;
     if (!player || !started) return;
+    haptic("tap");
     player.seekTo(Math.max(start, player.getCurrentTime() - 5), true);
     setRewindPulse(true);
     window.setTimeout(() => setRewindPulse(false), 500);
@@ -179,28 +214,47 @@ export function ImmersivePlayer({
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-foreground">
-      {/* Fit-to-screen: the frame is scaled to cover the viewport, no letterboxing. */}
+      {/* Letterboxed 16:9 frame centred in the portrait viewport. */}
       <div
-        className={`pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-all duration-700 ${
-          started ? "scale-100 opacity-100" : ambient ? "ambient-in" : "scale-105 opacity-40 blur-sm"
-        }`}
-        style={{ width: "max(100vw, 177.78vh)", height: "max(100vh, 56.25vw)" }}
+        className={`pointer-events-none relative aspect-video w-full max-h-[100vh] max-w-[100vw] ${
+          started ? "opacity-100" : ambient ? "ambient-in" : "scale-[0.98] opacity-45 blur-sm"
+        } ${dragging ? "" : "spring-back"}`}
+        style={{ transform: `translateX(${shift}px) scale(${dragging ? 0.98 : 1})` }}
       >
         <div ref={hostRef} className="size-full" />
       </div>
 
-      {/* Tap = play/pause. Right-to-left swipe = rewind 5s. Nothing else. */}
+      {/* Tap = play/pause. Quick left swipe = rewind. Double-tap + hold + slide = elastic nudge. */}
       <button
         type="button"
         aria-label={playing ? "Pause" : "Play"}
-        onClick={started ? togglePlay : undefined}
+        onClick={started && shift === 0 ? togglePlay : undefined}
         onTouchStart={(event) => {
-          touchX.current = event.touches[0]?.clientX ?? null;
+          const x = event.touches[0]?.clientX ?? null;
+          touchX.current = x;
+          const now = Date.now();
+          if (now - lastTap.current < DOUBLE_TAP_MS) {
+            dragFrom.current = x;
+            setDragging(true);
+            haptic("tap");
+          }
+          lastTap.current = now;
+        }}
+        onTouchMove={(event) => {
+          if (dragFrom.current === null) return;
+          const x = event.touches[0]?.clientX ?? dragFrom.current;
+          setShift(resist(x - dragFrom.current));
         }}
         onTouchEnd={(event) => {
           const from = touchX.current;
           const to = event.changedTouches[0]?.clientX ?? null;
           touchX.current = null;
+          if (dragFrom.current !== null) {
+            dragFrom.current = null;
+            setDragging(false);
+            setShift(0);
+            return;
+          }
           if (from !== null && to !== null && from - to > 60) rewind();
         }}
         className="absolute inset-0 cursor-pointer bg-transparent"
@@ -212,7 +266,7 @@ export function ImmersivePlayer({
           onClick={beginPlayback}
           disabled={!ready || ambient}
           aria-label="Start playback"
-          className={`tap-bounce relative z-10 flex size-24 items-center justify-center rounded-full border-4 border-background/70 bg-primary text-primary-foreground shadow-chunky transition-all duration-500 ${
+          className={`tap-bounce absolute z-10 flex size-24 items-center justify-center rounded-full border-4 border-background/70 bg-primary text-primary-foreground shadow-chunky transition-all duration-500 ${
             ambient ? "scale-150 opacity-0" : "play-glow"
           }`}
         >
@@ -228,7 +282,10 @@ export function ImmersivePlayer({
 
       <button
         type="button"
-        onClick={() => setConfirmExit(true)}
+        onClick={() => {
+          haptic("tap");
+          setConfirmExit(true);
+        }}
         aria-label="Close player"
         className="tap-bounce absolute right-4 top-4 z-20 rounded-full border-2 border-background/50 bg-foreground/70 p-2.5 text-background"
       >
