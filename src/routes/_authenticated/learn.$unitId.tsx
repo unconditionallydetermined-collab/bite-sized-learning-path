@@ -180,9 +180,10 @@ function LearnPage() {
     const result = await completeStreakDay(userId);
     let milestoneChest: GemDrop | null = null;
     if (result.extended && streakMilestone(result.streak)) {
-      milestoneChest = rollMilestoneChest(result.streak);
-      await awardGems(userId, milestoneChest.amount);
-      setRunGems((value) => value + milestoneChest.amount);
+      const rolled = rollMilestoneChest(result.streak);
+      milestoneChest = rolled;
+      await awardGems(userId, rolled.amount);
+      setRunGems((value) => value + rolled.amount);
     }
     if (unit?.video_id) clearPlayhead(unit.video_id);
     resetPace();
