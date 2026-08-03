@@ -11,7 +11,8 @@ import { SkipModal } from "@/components/SkipModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchPath, touchStreak } from "@/lib/course-data";
+import { fetchPath } from "@/lib/course-data";
+import { haptic } from "@/lib/haptics";
 
 export const Route = createFileRoute("/_authenticated/path")({
   head: () => ({
@@ -49,12 +50,8 @@ function PathPage() {
 
   const { data: profile } = useProfile();
 
-  useEffect(() => {
-    if (!userId) return;
-    void touchStreak(userId).then(() =>
-      queryClient.invalidateQueries({ queryKey: ["profile", userId] }),
-    );
-  }, [userId, queryClient]);
+  // NOTE: the streak is no longer touched here — it only extends when a full
+  // bit is completed in the player.
 
   const visible = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -92,8 +89,8 @@ function PathPage() {
 
   return (
     <AppShell>
-      <div className="mb-5 flex items-center gap-3 rounded-3xl border-2 border-border bg-card p-4 shadow-chunky-sm">
-        <Mascot mood={nextUp ? "neutral" : "happy"} size={72} />
+      <div className="screen-in mb-5 flex items-center gap-3 rounded-3xl border-2 border-border bg-card p-4 shadow-chunky-sm">
+        <Mascot mood={nextUp ? "neutral" : "happy"} size={72} className="drift" />
         <div className="min-w-0">
           <p className="font-display text-base">
             {nextUp ? "Ready for one bit?" : "Path clear — nice work!"}
@@ -103,7 +100,6 @@ function PathPage() {
           </p>
         </div>
       </div>
-      {nextUp && <NextUpCard next={nextUp} />}
       <div className="mb-5">
         <h1 className="text-2xl">Your quest path</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -149,7 +145,10 @@ function PathPage() {
                 <div className="overflow-hidden rounded-3xl border-2 border-border bg-card shadow-chunky-sm transition-all">
                   <button
                     type="button"
-                    onClick={() => setOpenId(open ? null : module.id)}
+                    onClick={() => {
+                      haptic("tap");
+                      setOpenId(open ? null : module.id);
+                    }}
                     className="flex w-full items-center gap-3 px-4 py-4 text-left"
                   >
                     <span className="min-w-0 flex-1">
@@ -224,6 +223,15 @@ function PathPage() {
             );
           })}
         </ol>
+      )}
+
+      {/* Thumb-zone continue card, pinned above the stats bar and tab bar. */}
+      {nextUp && (
+        <div className="fixed inset-x-0 bottom-[8.6rem] z-40 px-3">
+          <div className="mx-auto max-w-2xl">
+            <NextUpCard next={nextUp} compact />
+          </div>
+        </div>
       )}
 
       {skipTarget && (
