@@ -31,7 +31,7 @@ export function SongOffer({
           <h2 className="text-lg">Song unlocked?</h2>
           <p className="mt-1 text-sm text-muted-foreground">{song.title}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {price} gems · you have {gems}
+            {price} gems for one play · you have {gems}
           </p>
         </div>
         <div className="space-y-2">
@@ -41,7 +41,7 @@ export function SongOffer({
             onClick={onPlayVideo}
             className="btn-chunky w-full bg-primary px-4 py-3 text-sm text-primary-foreground"
           >
-            Watch now for {price} gems
+            Play once for {price} gems
           </button>
           <button
             type="button"

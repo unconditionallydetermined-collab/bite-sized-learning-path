@@ -15,6 +15,7 @@ import {
   fetchQueue,
   fetchSongs,
   relockSong,
+  unlockSong,
   redeemBatch,
   songPrice,
   type Song,
@@ -122,6 +123,19 @@ function MusicPage() {
     setQueueIndex(next);
     const song = playable[next]!.song;
     playBackgroundAudio(song.video_id ?? "", { title: song.title }, { onNext: () => void advanceQueue() });
+  };
+
+  /** Locked songs must be paid for again before each play (single-play model). */
+  const watch = async (song: Song, locked: boolean) => {
+    if (locked) {
+      const ok = await unlockSong(userId, song);
+      if (!ok) {
+        toast.error(`Not enough gems — ${songPrice(song.duration_seconds)} needed.`);
+        return;
+      }
+      await refresh();
+    }
+    setVideoSong(song);
   };
 
   const stopQueue = () => {
@@ -264,7 +278,7 @@ function MusicPage() {
                 {queueIndex === index && <Headphones className="size-4 text-primary" />}
                 <button
                   type="button"
-                  onClick={() => setVideoSong(entry.song)}
+                  onClick={() => void watch(entry.song, entry.status === "saved")}
                   className="tap-bounce rounded-xl border-2 border-border px-2.5 py-1.5 text-[11px] font-extrabold"
                 >
                   Watch
