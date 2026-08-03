@@ -18,7 +18,7 @@ export function AppShell({
   const { data: profile } = useProfile();
 
   return (
-    <div className="min-h-screen bg-background pb-44">
+    <div className="min-h-screen bg-background pb-52">
       {/* Slim brand strip only — the live stats live in the thumb zone below. */}
       <header className="sticky top-0 z-30 border-b-2 border-border bg-card/85 backdrop-blur">
         <div className="mx-auto flex max-w-2xl items-center justify-center gap-2 px-4 py-2">

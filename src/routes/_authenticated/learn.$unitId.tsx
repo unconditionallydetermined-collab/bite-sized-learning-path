@@ -12,15 +12,20 @@ import { useProfile } from "@/hooks/useProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { buildBits, formatClock, type Bit } from "@/lib/bits";
 import { playBackgroundAudio } from "@/lib/audio";
-import { UNIT_COMPLETE_BIT_INDEX, touchStreak } from "@/lib/course-data";
+import { StreakExtended } from "@/components/StreakExtended";
+import { useMiniPlayer } from "@/components/MiniPlayer";
+import { UNIT_COMPLETE_BIT_INDEX, completeStreakDay, type StreakResult } from "@/lib/course-data";
+import { haptic } from "@/lib/haptics";
+import { clearPlayhead } from "@/lib/playhead";
+import { recordCompletion, resetPace, shouldShowFullCelebration } from "@/lib/session-pace";
 import {
   awardGems,
-  isStreakMilestone,
   rollBitReward,
   rollMilestoneChest,
+  streakMilestone,
   type GemDrop,
 } from "@/lib/gems";
-import { fetchQueue, fetchSongs, markSongPlayed, saveSongForLater, unlockSong, type Song } from "@/lib/songs";
+import { fetchQueue, fetchSongs, relockSong, saveSongForLater, unlockSong, type Song } from "@/lib/songs";
 
 export const Route = createFileRoute("/_authenticated/learn/$unitId")({
   validateSearch: (search: Record<string, unknown>): { bit?: number } => {
@@ -62,6 +67,9 @@ function LearnPage() {
   const [songOffer, setSongOffer] = useState<Song | null>(null);
   const [songPlaying, setSongPlaying] = useState<Song | null>(null);
   const [replayKey, setReplayKey] = useState(0);
+  const [streakBeat, setStreakBeat] = useState<StreakResult | null>(null);
+  const [pendingChest, setPendingChest] = useState<GemDrop | null>(null);
+  const mini = useMiniPlayer();
 
   const { data, isLoading } = useQuery({
     queryKey: ["unit", unitId, userId],
@@ -120,12 +128,26 @@ function LearnPage() {
     await queryClient.invalidateQueries({ queryKey: ["profile", userId] });
 
     const isLast = activeIndex + 1 >= bits.length;
+    haptic("success");
+
+    // Reduced-friction flow: after a few quick completions in a row we drop the
+    // full-screen moment and keep the learner rolling with a light toast.
+    const quick = recordCompletion();
+    const remaining = bits.length - (activeIndex + 1);
+    const showFull = isLast || shouldShowFullCelebration(quick, remaining);
+
     if (drop.kind === "chest") {
       setChest(drop);
       return;
     }
-    if (isLast) void finishVideo();
-    else advance();
+    if (isLast) {
+      void finishVideo();
+      return;
+    }
+    if (!showFull) {
+      toast.success(`+${drop.amount} gems · lesson ${activeIndex + 2} up next`, { duration: 1400 });
+    }
+    advance();
   };
 
   const advance = () => {
@@ -133,7 +155,12 @@ function LearnPage() {
   };
 
   const afterChest = () => {
+    const wasMilestone = chest?.kind === "milestone";
     setChest(null);
+    if (wasMilestone) {
+      setCelebrating(true);
+      return;
+    }
     if (activeIndex !== null && activeIndex + 1 >= bits.length) void finishVideo();
     else advance();
   };
@@ -149,24 +176,41 @@ function LearnPage() {
       },
       { onConflict: "user_id,unit_id,bit_index" },
     );
-    await touchStreak(userId);
-    const { data: fresh } = await supabase
-      .from("profiles")
-      .select("streak_count")
-      .eq("id", userId)
-      .maybeSingle();
-    const streak = Number(fresh?.streak_count ?? 0);
-    if (isStreakMilestone(streak)) {
-      const milestone = rollMilestoneChest();
-      await awardGems(userId, milestone.amount);
-      setRunGems((value) => value + milestone.amount);
-      setChest(milestone);
+    // Streak only extends on a real completion (with a one-day catch-up grace).
+    const result = await completeStreakDay(userId);
+    let milestoneChest: GemDrop | null = null;
+    if (result.extended && streakMilestone(result.streak)) {
+      milestoneChest = rollMilestoneChest(result.streak);
+      await awardGems(userId, milestoneChest.amount);
+      setRunGems((value) => value + milestoneChest.amount);
     }
+    if (unit?.video_id) clearPlayhead(unit.video_id);
+    resetPace();
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["profile", userId] }),
       queryClient.invalidateQueries({ queryKey: ["path", userId] }),
       queryClient.invalidateQueries({ queryKey: ["unit", unitId, userId] }),
     ]);
+    if (result.extended) {
+      setPendingChest(milestoneChest);
+      setStreakBeat(result);
+      return;
+    }
+    if (milestoneChest) {
+      setChest(milestoneChest);
+      return;
+    }
+    setCelebrating(true);
+  };
+
+  /** After the streak beat: milestone chest first, then the celebration. */
+  const afterStreakBeat = () => {
+    setStreakBeat(null);
+    if (pendingChest) {
+      setChest(pendingChest);
+      setPendingChest(null);
+      return;
+    }
     setCelebrating(true);
   };
 
@@ -189,12 +233,14 @@ function LearnPage() {
       toast.error("Not enough gems for that song yet.");
       return;
     }
-    await markSongPlayed(userId, song.id);
     await queryClient.invalidateQueries({ queryKey: ["profile", userId] });
     setSongOffer(null);
+    haptic("success");
     if (mode === "audio") {
-      playBackgroundAudio(song.video_id ?? "");
-      toast.success("Playing in the background.");
+      playBackgroundAudio(song.video_id ?? "", { title: song.title });
+      // Single play: the unlock is consumed immediately, so the next listen costs gems again.
+      await relockSong(userId, song.id);
+      toast.success("Playing in the background — one play per unlock.");
       void navigate({ to: "/path" });
       return;
     }
@@ -207,8 +253,14 @@ function LearnPage() {
         videoId={songPlaying.video_id ?? ""}
         label={songPlaying.title}
         exitPrompt="Leave this song?"
-        onSegmentEnd={() => void navigate({ to: "/path" })}
-        onExit={() => void navigate({ to: "/path" })}
+        onSegmentEnd={() => {
+          void relockSong(userId, songPlaying.id);
+          void navigate({ to: "/path" });
+        }}
+        onExit={() => {
+          void relockSong(userId, songPlaying.id);
+          void navigate({ to: "/path" });
+        }}
       />
     );
   }
@@ -224,11 +276,23 @@ function LearnPage() {
         onDuration={(duration) => {
           if (bits.length === 0) planBits(duration);
         }}
+        resume
         onSegmentEnd={() => void handleBitEnd()}
-        onExit={() => void navigate({ to: "/path" })}
+        onExit={() => {
+          // Hand the video to the mini-player so it keeps playing while browsing.
+          if (unit.video_id) mini.open({ videoId: unit.video_id, title: unit.title });
+          void navigate({ to: "/path" });
+        }}
         overlay={
           <>
             {chest && <ChestReveal drop={chest} onDone={afterChest} />}
+            {streakBeat && (
+              <StreakExtended
+                streak={streakBeat.streak}
+                usedCatchUp={streakBeat.usedCatchUp}
+                onDone={afterStreakBeat}
+              />
+            )}
             {celebrating && (
               <CompletionCelebration
                 gems={runGems}
