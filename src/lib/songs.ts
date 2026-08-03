@@ -26,11 +26,28 @@ export function parseSongLinks(input: string): string[] {
     .filter((chunk) => chunk.length > 0);
 }
 
+/**
+ * Song pricing, derived from the app's real earning rates.
+ *
+ * Earning rate: a bit pays 10-40 gems (avg 25); ~1 in 8 completions pays a
+ * 50-100 chest (avg 75) instead. Expected per bit ~= 0.875*25 + 0.125*75 ~= 31.
+ * A reasonably active learner finishes ~6 bits/day (~186 gems), plus the
+ * weekly milestone chest (~125 amortised to ~18/day) => ~205 gems/day.
+ *
+ * Baseline "fair" price for a permanent unlock of a ~3 min song: about 1.5
+ * days of play, i.e. ~300 gems — earnable but worth working for.
+ * Step 1, requested 30% discount: 300 * 0.70 = 210.
+ * Step 2, single-play consumable (it re-locks after one playback, so it is
+ * bought repeatedly): a further 40% off a permanent unlock => 210 * 0.60 = 126,
+ * rounded to 125 gems for a ~3 min track. Short/long tracks scale around it.
+ */
+export const SONG_PRICE_3MIN = 125;
+
 export function songPrice(durationSeconds: number | null): number {
-  if (durationSeconds === null) return 175;
-  if (durationSeconds < 180) return 100;
-  if (durationSeconds <= 300) return 175;
-  return 250;
+  if (durationSeconds === null) return SONG_PRICE_3MIN;
+  if (durationSeconds < 180) return 90;
+  if (durationSeconds <= 300) return SONG_PRICE_3MIN;
+  return 175;
 }
 
 export async function addSongs(
@@ -135,10 +152,19 @@ export async function redeemBatch(
   return { unlocked: picks.length, cost };
 }
 
-export async function markSongPlayed(userId: string, songId: string) {
+/**
+ * Single-play model: once a paid playback finishes the song re-locks back to
+ * "saved", so playing it again costs gems again.
+ */
+export async function relockSong(userId: string, songId: string) {
   await supabase
     .from("song_queue")
-    .update({ status: "played" })
+    .update({ status: "saved" })
     .eq("user_id", userId)
     .eq("song_id", songId);
+}
+
+/** Kept for callers that just want the play recorded. */
+export async function markSongPlayed(userId: string, songId: string) {
+  await relockSong(userId, songId);
 }

@@ -430,3 +430,93 @@
     transform: translateY(110vh) rotate(540deg);
   }
 }
+
+/* Spring snap-back for the player's elastic double-tap-hold nudge. */
+@utility spring-back {
+  transition:
+    transform 480ms cubic-bezier(0.18, 1.62, 0.4, 1),
+    opacity 400ms ease-out,
+    filter 400ms ease-out;
+}
+
+/* Streak extension: flame flare + number tick. */
+@utility flame-flare {
+  animation: flame-flare 1.6s ease-in-out infinite;
+}
+
+@keyframes flame-flare {
+  0%,
+  100% {
+    transform: scale(1) rotate(-2deg);
+    box-shadow: 0 0 16px 2px color-mix(in oklab, var(--sky) 45%, transparent);
+  }
+  50% {
+    transform: scale(1.09) rotate(2deg);
+    box-shadow: 0 0 42px 12px color-mix(in oklab, var(--sky) 65%, transparent);
+  }
+}
+
+@utility count-pop {
+  animation: count-pop 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes count-pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.2;
+  }
+  60% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Mini-player dock entry. */
+@utility mini-dock {
+  animation: mini-dock 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes mini-dock {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Gentle parallax drift for hero surfaces — retention polish. */
+@utility drift {
+  animation: drift 9s ease-in-out infinite;
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* Smooth page-level entry used across screens. */
+@utility screen-in {
+  animation: screen-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes screen-in {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

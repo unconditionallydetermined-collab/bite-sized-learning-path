@@ -2,7 +2,27 @@ import { useEffect, useState } from "react";
 import { Gem, Sparkles } from "lucide-react";
 
 import { Mascot } from "@/components/Mascot";
+import { haptic } from "@/lib/haptics";
+import { playChestSfx, playCompletionSfx } from "@/lib/sfx";
 import type { GemDrop } from "@/lib/gems";
+
+/** Counts a number up from 0 for the celebration summary. */
+function useCountUp(target: number, duration = 900): number {
+  const [value, setValue] = useState(0);
+  useEffect(() => {
+    if (target <= 0) return;
+    const started = performance.now();
+    let frame = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - started) / duration);
+      setValue(Math.round(target * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, duration]);
+  return value;
+}
 
 /** Small "+N" floaty shown in-flow whenever gems land. */
 export function GemFloat({ amount }: { amount: number }) {
@@ -18,6 +38,8 @@ export function ChestReveal({ drop, onDone }: { drop: GemDrop; onDone: () => voi
   const [phase, setPhase] = useState<"shake" | "burst">("shake");
 
   useEffect(() => {
+    haptic("chest");
+    playChestSfx();
     const timer = window.setTimeout(() => setPhase("burst"), 1200);
     return () => window.clearTimeout(timer);
   }, []);
@@ -39,7 +61,10 @@ export function ChestReveal({ drop, onDone }: { drop: GemDrop; onDone: () => voi
           </p>
           <button
             type="button"
-            onClick={onDone}
+            onClick={() => {
+              haptic("success");
+              onDone();
+            }}
             className="btn-chunky bg-primary px-6 py-3 text-sm text-primary-foreground"
           >
             Collect
@@ -66,6 +91,13 @@ export function CompletionCelebration({
   onReplay: () => void;
   onExit: () => void;
 }) {
+  const countedGems = useCountUp(gems);
+
+  useEffect(() => {
+    haptic("complete");
+    playCompletionSfx();
+  }, []);
+
   return (
     <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-5 overflow-hidden bg-foreground/92 p-6 text-center">
       {Array.from({ length: 18 }, (_, index) => (
@@ -90,7 +122,7 @@ export function CompletionCelebration({
         <p className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Gems earned</span>
           <span className="flex items-center gap-1 font-extrabold text-primary">
-            <Gem className="size-4" /> {gems}
+            <Gem className="size-4" /> {countedGems}
           </span>
         </p>
         <p className="flex items-center justify-between text-sm">
@@ -107,14 +139,20 @@ export function CompletionCelebration({
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={onContinue}
+            onClick={() => {
+              haptic("tap");
+              onContinue();
+            }}
             className="btn-chunky flex-1 bg-primary px-4 py-3 text-sm text-primary-foreground"
           >
             Continue
           </button>
           <button
             type="button"
-            onClick={onReplay}
+            onClick={() => {
+              haptic("tap");
+              onReplay();
+            }}
             className="btn-chunky flex-1 bg-sky px-4 py-3 text-sm text-sky-foreground"
           >
             Replay

@@ -14,7 +14,8 @@ import {
   addSongs,
   fetchQueue,
   fetchSongs,
-  markSongPlayed,
+  relockSong,
+  unlockSong,
   redeemBatch,
   songPrice,
   type Song,
@@ -102,13 +103,15 @@ function MusicPage() {
       return;
     }
     setQueueIndex(0);
-    playBackgroundAudio(playable[0]!.song.video_id ?? "");
+    const first = playable[0]!.song;
+    playBackgroundAudio(first.video_id ?? "", { title: first.title }, { onNext: () => void advanceQueue() });
   };
 
   const advanceQueue = async () => {
     if (queueIndex === null) return;
     const current = playable[queueIndex];
-    if (current) await markSongPlayed(userId, current.song_id);
+    // Single-play model: finishing a track re-locks it, so replaying costs gems again.
+    if (current) await relockSong(userId, current.song_id);
     const next = queueIndex + 1;
     if (next >= playable.length) {
       stopBackgroundAudio();
@@ -118,7 +121,21 @@ function MusicPage() {
       return;
     }
     setQueueIndex(next);
-    playBackgroundAudio(playable[next]!.song.video_id ?? "");
+    const song = playable[next]!.song;
+    playBackgroundAudio(song.video_id ?? "", { title: song.title }, { onNext: () => void advanceQueue() });
+  };
+
+  /** Locked songs must be paid for again before each play (single-play model). */
+  const watch = async (song: Song, locked: boolean) => {
+    if (locked) {
+      const ok = await unlockSong(userId, song);
+      if (!ok) {
+        toast.error(`Not enough gems — ${songPrice(song.duration_seconds)} needed.`);
+        return;
+      }
+      await refresh();
+    }
+    setVideoSong(song);
   };
 
   const stopQueue = () => {
@@ -132,7 +149,11 @@ function MusicPage() {
         videoId={videoSong.video_id ?? ""}
         label={videoSong.title}
         exitPrompt="Leave this song?"
-        onSegmentEnd={() => setVideoSong(null)}
+        onSegmentEnd={() => {
+          void relockSong(userId, videoSong.id);
+          void refresh();
+          setVideoSong(null);
+        }}
         onExit={() => setVideoSong(null)}
       />
     );
@@ -140,7 +161,7 @@ function MusicPage() {
 
   return (
     <AppShell>
-      <h1 className="text-2xl">Jukebox</h1>
+      <h1 className="screen-in text-2xl">Jukebox</h1>
       <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
         <Gem className="size-4 text-primary" /> {profile?.gems ?? 0} gems · {playable.length} in queue
       </p>
@@ -249,13 +270,15 @@ function MusicPage() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-bold">{entry.song.title}</span>
                   <span className="text-[11px] text-muted-foreground">
-                    {entry.status === "saved" ? "Saved for later" : "Unlocked"}
+                    {entry.status === "saved"
+                      ? `Locked · ${songPrice(entry.song.duration_seconds)} gems per play`
+                      : "Unlocked · one play"}
                   </span>
                 </span>
                 {queueIndex === index && <Headphones className="size-4 text-primary" />}
                 <button
                   type="button"
-                  onClick={() => setVideoSong(entry.song)}
+                  onClick={() => void watch(entry.song, entry.status === "saved")}
                   className="tap-bounce rounded-xl border-2 border-border px-2.5 py-1.5 text-[11px] font-extrabold"
                 >
                   Watch

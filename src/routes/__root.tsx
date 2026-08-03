@@ -14,6 +14,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/hooks/useAuth";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { MiniPlayerProvider } from "@/components/MiniPlayer";
 import { registerServiceWorker } from "@/lib/pwa";
 
 function NotFoundComponent() {
@@ -143,10 +144,12 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <InstallPrompt />
-        <Toaster />
+        <MiniPlayerProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <InstallPrompt />
+          <Toaster />
+        </MiniPlayerProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

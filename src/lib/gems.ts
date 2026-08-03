@@ -25,13 +25,34 @@ export function rollBitReward(): GemDrop {
   return { amount: randomBetween(10, 40), kind: "flat" };
 }
 
-/** Guaranteed bigger chest on every 7th streak day. */
-export function rollMilestoneChest(): GemDrop {
-  return { amount: randomBetween(100, 150), kind: "milestone" };
+/**
+ * Escalating streak commitment milestones. Payouts stay randomized inside a
+ * range at every tier so the reward keeps its variable feel.
+ */
+export const STREAK_MILESTONES: Array<{ day: number; min: number; max: number; label: string }> = [
+  { day: 3, min: 60, max: 110, label: "3-day spark" },
+  { day: 7, min: 100, max: 150, label: "1-week commitment" },
+  { day: 14, min: 160, max: 240, label: "2-week commitment" },
+  { day: 30, min: 300, max: 450, label: "1-month commitment" },
+  { day: 40, min: 420, max: 600, label: "40-day commitment" },
+  { day: 60, min: 600, max: 850, label: "2-month commitment" },
+  { day: 100, min: 900, max: 1300, label: "100-day legend" },
+  { day: 180, min: 1500, max: 2100, label: "half-year legend" },
+  { day: 365, min: 3000, max: 4200, label: "1-year legend" },
+];
+
+export function streakMilestone(streak: number) {
+  return STREAK_MILESTONES.find((entry) => entry.day === streak) ?? null;
 }
 
 export function isStreakMilestone(streak: number): boolean {
-  return streak > 0 && streak % 7 === 0;
+  return streakMilestone(streak) !== null;
+}
+
+/** Guaranteed bigger chest whenever a milestone day lands. */
+export function rollMilestoneChest(streak = 7): GemDrop {
+  const tier = streakMilestone(streak) ?? { min: 100, max: 150 };
+  return { amount: randomBetween(tier.min, tier.max), kind: "milestone" };
 }
 
 /** Credits gems and returns the new balance. */
