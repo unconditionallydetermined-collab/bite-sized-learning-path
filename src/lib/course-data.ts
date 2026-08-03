@@ -191,28 +191,58 @@ function localDateKey(date: Date): string {
   ).padStart(2, "0")}`;
 }
 
-/** Bumps the daily streak based on the learner's local calendar day. */
-export async function touchStreak(userId: string) {
+export type StreakResult = {
+  streak: number;
+  extended: boolean;
+  usedFreeze: boolean;
+  usedCatchUp: boolean;
+  alreadyToday: boolean;
+};
+
+/** Yesterday's key, used for the catch-up allowance. */
+function offsetKey(days: number): string {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return localDateKey(date);
+}
+
+/**
+ * Extends the streak. Called ONLY when a learner actually finishes a full
+ * bit/lesson — opening the app no longer counts.
+ *
+ * Catch-up allowance: if exactly one day was missed, finishing a lesson now
+ * retroactively covers that gap and the streak continues instead of resetting.
+ * A held streak freeze covers a longer gap.
+ */
+export async function completeStreakDay(userId: string): Promise<StreakResult> {
   const { data: profile } = await supabase
     .from("profiles")
     .select("streak_count, longest_streak, last_active_date, streak_freezes")
     .eq("id", userId)
     .maybeSingle();
-  if (!profile) return;
+  if (!profile) {
+    return { streak: 0, extended: false, usedFreeze: false, usedCatchUp: false, alreadyToday: false };
+  }
 
-  const today = new Date();
-  const todayKey = localDateKey(today);
-  if (profile.last_active_date === todayKey) return;
+  const todayKey = localDateKey(new Date());
+  if (profile.last_active_date === todayKey) {
+    return {
+      streak: profile.streak_count,
+      extended: false,
+      usedFreeze: false,
+      usedCatchUp: false,
+      alreadyToday: true,
+    };
+  }
 
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const continued = profile.last_active_date === localDateKey(yesterday);
-
-  // A held streak freeze auto-applies on the first missed day, so the streak
-  // continues instead of resetting.
+  const continued = profile.last_active_date === offsetKey(1);
+  // Missed exactly one day: the learner catches it up by completing now.
+  const usedCatchUp = !continued && profile.last_active_date === offsetKey(2);
   const freezes = Number(profile.streak_freezes ?? 0);
-  const usesFreeze = !continued && profile.last_active_date !== null && freezes > 0;
-  const streak = continued || usesFreeze ? profile.streak_count + 1 : 1;
+  const usedFreeze = !continued && !usedCatchUp && profile.last_active_date !== null && freezes > 0;
+
+  const keepsGoing = continued || usedCatchUp || usedFreeze;
+  const streak = keepsGoing ? profile.streak_count + 1 : 1;
 
   await supabase
     .from("profiles")
@@ -220,8 +250,24 @@ export async function touchStreak(userId: string) {
       streak_count: streak,
       longest_streak: Math.max(streak, profile.longest_streak),
       last_active_date: todayKey,
-      streak_freezes: usesFreeze ? freezes - 1 : freezes,
+      streak_freezes: usedFreeze ? freezes - 1 : freezes,
       updated_at: new Date().toISOString(),
     })
     .eq("id", userId);
+
+  return { streak, extended: true, usedFreeze, usedCatchUp, alreadyToday: false };
+}
+
+/** True when today's lesson goal has not been met yet (drives the catch-up nudge). */
+export async function streakStatus(userId: string): Promise<{ doneToday: boolean; missedYesterday: boolean }> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("last_active_date")
+    .eq("id", userId)
+    .maybeSingle();
+  const last = data?.last_active_date ?? null;
+  return {
+    doneToday: last === localDateKey(new Date()),
+    missedYesterday: last !== null && last !== localDateKey(new Date()) && last !== offsetKey(1),
+  };
 }
