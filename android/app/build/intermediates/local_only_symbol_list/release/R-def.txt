@@ -1,0 +1,7 @@
+R_DEF: Internal format may change without notice
+local
+mipmap ic_launcher
+string app_name
+string shortcut_lesson_long
+string shortcut_lesson_short
+xml shortcuts

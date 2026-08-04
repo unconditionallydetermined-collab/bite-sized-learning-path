@@ -1,0 +1,5 @@
+int mipmap ic_launcher 0x7f010000
+int string app_name 0x7f020000
+int string shortcut_lesson_long 0x7f020001
+int string shortcut_lesson_short 0x7f020002
+int xml shortcuts 0x7f030000
