@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Bell, ChevronRight, LogOut, User } from "lucide-react";
+import { Bell, ChevronRight, Download, LogOut, User } from "lucide-react";
 
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,6 +45,14 @@ function SettingsPage() {
           <span className="flex-1 text-sm font-bold">Reminders</span>
           <span className="text-[11px] uppercase tracking-widest text-muted-foreground">Soon</span>
         </div>
+        <Link
+          to="/download"
+          className="flex items-center gap-3 rounded-2xl border-2 border-border bg-card px-4 py-4 transition-colors hover:bg-secondary/60"
+        >
+          <Download className="size-4 text-primary" />
+          <span className="flex-1 text-sm font-bold">Download Android app</span>
+          <ChevronRight className="size-4 text-muted-foreground" />
+        </Link>
         <button
           type="button"
           onClick={() => void signOut()}
