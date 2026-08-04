@@ -154,14 +154,56 @@ export async function redeemBatch(
 
 /**
  * Single-play model: once a paid playback finishes the song re-locks back to
- * "saved", so playing it again costs gems again.
+ * "saved" AND moves to the back of the buy queue, so freshly-played tracks stop
+ * hogging the front of the list and something new is offered next.
  */
 export async function relockSong(userId: string, songId: string) {
+  const { data } = await supabase
+    .from("song_queue")
+    .select("position")
+    .eq("user_id", userId)
+    .order("position", { ascending: false })
+    .limit(1);
+  const back = Number(data?.[0]?.position ?? 0) + 1;
   await supabase
     .from("song_queue")
-    .update({ status: "saved" })
+    .update({ status: "saved", position: back })
     .eq("user_id", userId)
     .eq("song_id", songId);
+}
+
+/**
+ * Whole-video credits. Finishing every bit of a video banks one credit, which
+ * can be spent later on any song instead of gems.
+ */
+export async function earnSongCredit(userId: string): Promise<number> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("song_credits")
+    .eq("id", userId)
+    .maybeSingle();
+  const next = Number(data?.song_credits ?? 0) + 1;
+  await supabase.from("profiles").update({ song_credits: next }).eq("id", userId);
+  return next;
+}
+
+/** Spends one banked credit to unlock a song (single play, like a gem unlock). */
+export async function unlockSongWithCredit(userId: string, song: Song): Promise<boolean> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("song_credits")
+    .eq("id", userId)
+    .maybeSingle();
+  const held = Number(data?.song_credits ?? 0);
+  if (held < 1) return false;
+  await supabase.from("profiles").update({ song_credits: held - 1 }).eq("id", userId);
+  await supabase
+    .from("song_queue")
+    .upsert(
+      { user_id: userId, song_id: song.id, status: "unlocked" },
+      { onConflict: "user_id,song_id" },
+    );
+  return true;
 }
 
 /** Kept for callers that just want the play recorded. */

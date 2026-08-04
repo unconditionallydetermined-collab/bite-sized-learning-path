@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
-import { ChestReveal, CompletionCelebration } from "@/components/GemReward";
+import { BitComplete, ChestReveal, CompletionCelebration } from "@/components/GemReward";
 import { ImmersivePlayer } from "@/components/ImmersivePlayer";
 import { SongOffer } from "@/components/SongOffer";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,7 +25,16 @@ import {
   streakMilestone,
   type GemDrop,
 } from "@/lib/gems";
-import { fetchQueue, fetchSongs, relockSong, saveSongForLater, unlockSong, type Song } from "@/lib/songs";
+import {
+  earnSongCredit,
+  fetchQueue,
+  fetchSongs,
+  relockSong,
+  saveSongForLater,
+  unlockSong,
+  unlockSongWithCredit,
+  type Song,
+} from "@/lib/songs";
 
 export const Route = createFileRoute("/_authenticated/learn/$unitId")({
   validateSearch: (search: Record<string, unknown>): { bit?: number } => {
@@ -69,6 +78,7 @@ function LearnPage() {
   const [replayKey, setReplayKey] = useState(0);
   const [streakBeat, setStreakBeat] = useState<StreakResult | null>(null);
   const [pendingChest, setPendingChest] = useState<GemDrop | null>(null);
+  const [bitBeat, setBitBeat] = useState<{ gems: number; index: number } | null>(null);
   const mini = useMiniPlayer();
 
   const { data, isLoading } = useQuery({
@@ -144,9 +154,13 @@ function LearnPage() {
       void finishVideo();
       return;
     }
-    if (!showFull) {
-      toast.success(`+${drop.amount} gems · lesson ${activeIndex + 2} up next`, { duration: 1400 });
+    // Every bit gets a payoff: the full animated moment normally, and a light
+    // toast when the learner is speed-running several bits back to back.
+    if (showFull) {
+      setBitBeat({ gems: drop.amount, index: activeIndex + 1 });
+      return;
     }
+    toast.success(`+${drop.amount} gems · lesson ${activeIndex + 2} up next`, { duration: 1400 });
     advance();
   };
 
@@ -219,8 +233,10 @@ function LearnPage() {
   const openSongOffer = async () => {
     setCelebrating(false);
     const [songs, queue] = await Promise.all([fetchSongs(userId), fetchQueue(userId)]);
-    const taken = new Set(queue.map((entry) => entry.song_id));
-    const candidates = songs.filter((song) => !taken.has(song.id));
+    const unlocked = new Set(
+      queue.filter((entry) => entry.status === "unlocked").map((entry) => entry.song_id),
+    );
+    const candidates = songs.filter((song) => !unlocked.has(song.id));
     if (candidates.length === 0) {
       void navigate({ to: "/path" });
       return;
@@ -229,7 +245,10 @@ function LearnPage() {
   };
 
   const buySong = async (song: Song, mode: "video" | "audio") => {
-    const ok = await unlockSong(userId, song);
+    const credits = profile?.song_credits ?? 0;
+    const ok = credits > 0
+      ? await unlockSongWithCredit(userId, song)
+      : await unlockSong(userId, song);
     if (!ok) {
       toast.error("Not enough gems for that song yet.");
       return;
@@ -259,6 +278,8 @@ function LearnPage() {
           void navigate({ to: "/path" });
         }}
         onExit={() => {
+          // Songs keep playing in the dockable mini-player after you leave.
+          mini.open({ videoId: songPlaying.video_id ?? "", title: songPlaying.title });
           void relockSong(userId, songPlaying.id);
           void navigate({ to: "/path" });
         }}
@@ -280,12 +301,24 @@ function LearnPage() {
         resume
         onSegmentEnd={() => void handleBitEnd()}
         onExit={() => {
-          // Hand the video to the mini-player so it keeps playing while browsing.
-          if (unit.video_id) mini.open({ videoId: unit.video_id, title: unit.title });
+          // Lesson videos stop when you leave — the mini-player is music-only.
           void navigate({ to: "/path" });
         }}
         overlay={
           <>
+            {bitBeat && (
+              <BitComplete
+                gems={bitBeat.gems}
+                bitNumber={bitBeat.index}
+                totalBits={bits.length}
+                streak={profile?.streak_count ?? 0}
+                streakDoneToday={(profile?.streak_count ?? 0) > 0}
+                onDone={() => {
+                  setBitBeat(null);
+                  advance();
+                }}
+              />
+            )}
             {chest && <ChestReveal drop={chest} onDone={afterChest} />}
             {streakBeat && (
               <StreakExtended
@@ -314,8 +347,18 @@ function LearnPage() {
               <SongOffer
                 song={songOffer}
                 gems={profile?.gems ?? 0}
+                credits={profile?.song_credits ?? 0}
                 onPlayVideo={() => void buySong(songOffer, "video")}
                 onPlayAudio={() => void buySong(songOffer, "audio")}
+                onSaveCredit={() => {
+                  void (async () => {
+                    await earnSongCredit(userId);
+                    await queryClient.invalidateQueries({ queryKey: ["profile", userId] });
+                    toast.success("Song credit banked — redeem it any time in the Jukebox.");
+                    setSongOffer(null);
+                    void navigate({ to: "/path" });
+                  })();
+                }}
                 onSaveForLater={() => {
                   void saveSongForLater(userId, songOffer.id);
                   toast.success("Saved to your jukebox for later.");

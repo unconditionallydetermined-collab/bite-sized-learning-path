@@ -8,6 +8,7 @@ export type LearnerProfile = {
   longest_streak: number;
   gems: number;
   streak_freezes: number;
+  song_credits: number;
   onboarded: boolean;
 };
 
@@ -31,6 +32,7 @@ export function useProfile() {
         longest_streak: Number(row["longest_streak"] ?? 0),
         gems: Number(row["gems"] ?? 0),
         streak_freezes: Number(row["streak_freezes"] ?? 0),
+        song_credits: Number(row["song_credits"] ?? 0),
         onboarded: Boolean(row["onboarded"]),
       };
     },

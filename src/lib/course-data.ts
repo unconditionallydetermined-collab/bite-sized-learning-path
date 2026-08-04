@@ -191,6 +191,26 @@ function localDateKey(date: Date): string {
   ).padStart(2, "0")}`;
 }
 
+/**
+ * Bulk video ingestion: one link, or many separated by commas/newlines. Each
+ * link becomes a unit inside a single new quest, so learners can add content in
+ * bulk without writing the full course-text format.
+ */
+export async function importVideoLinks(
+  userId: string,
+  questTitle: string,
+  input: string,
+): Promise<ParseResult> {
+  const links = input
+    .split(/[,\n]/)
+    .map((chunk) => chunk.trim().replace(/^\[|\]$/g, ""))
+    .filter((chunk) => chunk.length > 0);
+  if (links.length === 0) throw new Error("Paste at least one YouTube link.");
+  const lines = links.map((link, index) => `Video ${index + 1} (${index + 1}) -> ${link}`);
+  const title = questTitle.trim() || "Bulk import";
+  return importCourseText(userId, `Quest 1: ${title}\nModules / Units:\n${lines.join("\n")}`);
+}
+
 export type StreakResult = {
   streak: number;
   extended: boolean;

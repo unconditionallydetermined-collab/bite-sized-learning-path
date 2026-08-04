@@ -439,6 +439,11 @@
     filter 400ms ease-out;
 }
 
+/* Full-screen player surface: white letterbox around the 16:9 frame. */
+@utility player-surface {
+  background: oklch(1 0 0);
+}
+
 /* Streak extension: flame flare + number tick. */
 @utility flame-flare {
   animation: flame-flare 1.6s ease-in-out infinite;

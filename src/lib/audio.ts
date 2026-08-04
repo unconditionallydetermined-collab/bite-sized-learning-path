@@ -44,7 +44,7 @@ export function playBackgroundAudio(videoId: string, meta?: { title?: string; ar
   frame.style.pointerEvents = "none";
   frame.style.bottom = "0";
   frame.style.left = "0";
-  frame.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&playsinline=1&controls=0`;
+  frame.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&playsinline=1&controls=0&enablejsapi=1`;
   document.body.appendChild(frame);
 
   void keepalive().play().catch(() => undefined);
@@ -58,13 +58,41 @@ export function playBackgroundAudio(videoId: string, meta?: { title?: string; ar
     });
     navigator.mediaSession.playbackState = "playing";
     try {
-      navigator.mediaSession.setActionHandler("pause", () => handlers?.onPause?.());
-      navigator.mediaSession.setActionHandler("play", () => handlers?.onResume?.());
+      navigator.mediaSession.setActionHandler("pause", () => {
+        pauseBackgroundAudio();
+        handlers?.onPause?.();
+      });
+      navigator.mediaSession.setActionHandler("play", () => {
+        resumeBackgroundAudio();
+        handlers?.onResume?.();
+      });
       navigator.mediaSession.setActionHandler("nexttrack", () => handlers?.onNext?.());
     } catch {
       /* handler unsupported */
     }
   }
+}
+
+/** Drives the hidden iframe through the YouTube postMessage API. */
+function command(func: "pauseVideo" | "playVideo") {
+  const frame = document.getElementById(HOST_ID) as HTMLIFrameElement | null;
+  frame?.contentWindow?.postMessage(
+    JSON.stringify({ event: "command", func, args: [] }),
+    "https://www.youtube-nocookie.com",
+  );
+}
+
+export function pauseBackgroundAudio() {
+  command("pauseVideo");
+  const element = document.getElementById(KEEPALIVE_ID) as HTMLAudioElement | null;
+  element?.pause();
+  if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "paused";
+}
+
+export function resumeBackgroundAudio() {
+  command("playVideo");
+  void keepalive().play().catch(() => undefined);
+  if ("mediaSession" in navigator) navigator.mediaSession.playbackState = "playing";
 }
 
 export function stopBackgroundAudio() {

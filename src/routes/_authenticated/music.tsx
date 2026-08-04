@@ -9,6 +9,7 @@ import { ImmersivePlayer } from "@/components/ImmersivePlayer";
 import { Mascot } from "@/components/Mascot";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
+import { useMiniPlayer } from "@/components/MiniPlayer";
 import { playBackgroundAudio, stopBackgroundAudio } from "@/lib/audio";
 import {
   addSongs,
@@ -16,6 +17,7 @@ import {
   fetchSongs,
   relockSong,
   unlockSong,
+  unlockSongWithCredit,
   redeemBatch,
   songPrice,
   type Song,
@@ -45,6 +47,8 @@ function MusicPage() {
   const [batch, setBatch] = useState(3);
   const [queueIndex, setQueueIndex] = useState<number | null>(null);
   const [videoSong, setVideoSong] = useState<Song | null>(null);
+  const mini = useMiniPlayer();
+  const credits = profile?.song_credits ?? 0;
 
   const { data: songs = [] } = useQuery({
     queryKey: ["songs", userId],
@@ -128,7 +132,9 @@ function MusicPage() {
   /** Locked songs must be paid for again before each play (single-play model). */
   const watch = async (song: Song, locked: boolean) => {
     if (locked) {
-      const ok = await unlockSong(userId, song);
+      const ok = credits > 0
+        ? await unlockSongWithCredit(userId, song)
+        : await unlockSong(userId, song);
       if (!ok) {
         toast.error(`Not enough gems — ${songPrice(song.duration_seconds)} needed.`);
         return;
@@ -154,7 +160,13 @@ function MusicPage() {
           void refresh();
           setVideoSong(null);
         }}
-        onExit={() => setVideoSong(null)}
+        onExit={() => {
+          // Music keeps playing in the dockable mini-player after leaving.
+          mini.open({ videoId: videoSong.video_id ?? "", title: videoSong.title });
+          void relockSong(userId, videoSong.id);
+          void refresh();
+          setVideoSong(null);
+        }}
       />
     );
   }
@@ -163,7 +175,8 @@ function MusicPage() {
     <AppShell>
       <h1 className="screen-in text-2xl">Jukebox</h1>
       <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-        <Gem className="size-4 text-primary" /> {profile?.gems ?? 0} gems · {playable.length} in queue
+        <Gem className="size-4 text-primary" /> {profile?.gems ?? 0} gems · {credits} song credit(s) ·{" "}
+        {playable.length} in queue
       </p>
 
       {/* Simple song ingestion — one link or several comma-separated. Songs are never chunked. */}

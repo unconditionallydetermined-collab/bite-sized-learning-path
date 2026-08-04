@@ -12,10 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as DownloadRouteImport } from './routes/download'
 import { Route as AuthenticatedMusicRouteImport } from './routes/_authenticated/music'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedPathRouteImport } from './routes/_authenticated/path'
 import { Route as AuthenticatedShopRouteImport } from './routes/_authenticated/shop'
+import { Route as AuthenticatedStartRouteImport } from './routes/_authenticated/start'
 import { Route as AuthenticatedLearnUnitIdRouteImport } from './routes/_authenticated/learn.$unitId'
 import { Route as AuthenticatedSettingsIndexRouteImport } from './routes/_authenticated/settings/index'
 import { Route as AuthenticatedSettingsProfileIndexRouteImport } from './routes/_authenticated/settings/profile/index'
@@ -36,6 +38,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedMusicRoute = AuthenticatedMusicRouteImport.update({
   id: '/music',
   path: '/music',
@@ -54,6 +61,11 @@ const AuthenticatedPathRoute = AuthenticatedPathRouteImport.update({
 const AuthenticatedShopRoute = AuthenticatedShopRouteImport.update({
   id: '/shop',
   path: '/shop',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedStartRoute = AuthenticatedStartRouteImport.update({
+  id: '/start',
+  path: '/start',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedLearnUnitIdRoute =
@@ -90,10 +102,12 @@ const AuthenticatedSettingsProfileAdvancedContentLibraryRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/download': typeof DownloadRoute
   '/music': typeof AuthenticatedMusicRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/path': typeof AuthenticatedPathRoute
   '/shop': typeof AuthenticatedShopRoute
+  '/start': typeof AuthenticatedStartRoute
   '/learn/$unitId': typeof AuthenticatedLearnUnitIdRoute
   '/settings/': typeof AuthenticatedSettingsIndexRoute
   '/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
@@ -103,10 +117,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/download': typeof DownloadRoute
   '/music': typeof AuthenticatedMusicRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/path': typeof AuthenticatedPathRoute
   '/shop': typeof AuthenticatedShopRoute
+  '/start': typeof AuthenticatedStartRoute
   '/learn/$unitId': typeof AuthenticatedLearnUnitIdRoute
   '/settings': typeof AuthenticatedSettingsIndexRoute
   '/settings/profile': typeof AuthenticatedSettingsProfileIndexRoute
@@ -118,10 +134,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/download': typeof DownloadRoute
   '/_authenticated/music': typeof AuthenticatedMusicRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/path': typeof AuthenticatedPathRoute
   '/_authenticated/shop': typeof AuthenticatedShopRoute
+  '/_authenticated/start': typeof AuthenticatedStartRoute
   '/_authenticated/learn/$unitId': typeof AuthenticatedLearnUnitIdRoute
   '/_authenticated/settings/': typeof AuthenticatedSettingsIndexRoute
   '/_authenticated/settings/profile/': typeof AuthenticatedSettingsProfileIndexRoute
@@ -133,10 +151,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/download'
     | '/music'
     | '/onboarding'
     | '/path'
     | '/shop'
+    | '/start'
     | '/learn/$unitId'
     | '/settings/'
     | '/settings/profile/'
@@ -146,10 +166,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/download'
     | '/music'
     | '/onboarding'
     | '/path'
     | '/shop'
+    | '/start'
     | '/learn/$unitId'
     | '/settings'
     | '/settings/profile'
@@ -160,10 +182,12 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/download'
     | '/_authenticated/music'
     | '/_authenticated/onboarding'
     | '/_authenticated/path'
     | '/_authenticated/shop'
+    | '/_authenticated/start'
     | '/_authenticated/learn/$unitId'
     | '/_authenticated/settings/'
     | '/_authenticated/settings/profile/'
@@ -175,6 +199,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
+  DownloadRoute: typeof DownloadRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -198,6 +223,13 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/music': {
@@ -226,6 +258,13 @@ declare module '@tanstack/react-router' {
       path: '/shop'
       fullPath: '/shop'
       preLoaderRoute: typeof AuthenticatedShopRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/start': {
+      id: '/_authenticated/start'
+      path: '/start'
+      fullPath: '/start'
+      preLoaderRoute: typeof AuthenticatedStartRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/learn/$unitId': {
@@ -271,6 +310,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedPathRoute: typeof AuthenticatedPathRoute
   AuthenticatedShopRoute: typeof AuthenticatedShopRoute
+  AuthenticatedStartRoute: typeof AuthenticatedStartRoute
   AuthenticatedLearnUnitIdRoute: typeof AuthenticatedLearnUnitIdRoute
   AuthenticatedSettingsIndexRoute: typeof AuthenticatedSettingsIndexRoute
   AuthenticatedSettingsProfileIndexRoute: typeof AuthenticatedSettingsProfileIndexRoute
@@ -283,6 +323,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedPathRoute: AuthenticatedPathRoute,
   AuthenticatedShopRoute: AuthenticatedShopRoute,
+  AuthenticatedStartRoute: AuthenticatedStartRoute,
   AuthenticatedLearnUnitIdRoute: AuthenticatedLearnUnitIdRoute,
   AuthenticatedSettingsIndexRoute: AuthenticatedSettingsIndexRoute,
   AuthenticatedSettingsProfileIndexRoute:
@@ -300,6 +341,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
+  DownloadRoute: DownloadRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

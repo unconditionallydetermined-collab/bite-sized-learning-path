@@ -45,6 +45,10 @@ function resist(dx: number, limit = 140): number {
   return limit * Math.tanh(dx / limit);
 }
 
+/** Underdamped spring constants — snaps home with a small overshoot. */
+const SPRING_K = 190;
+const SPRING_C = 12;
+
 /**
  * One immersive player reused for lesson bits and full songs.
  *
@@ -86,6 +90,10 @@ export function ImmersivePlayer({
   const touchX = useRef<number | null>(null);
   const lastTap = useRef(0);
   const dragFrom = useRef<number | null>(null);
+  const springRef = useRef<number | null>(null);
+  const shiftRef = useRef(0);
+  const velocity = useRef(0);
+  const lastMove = useRef({ x: 0, t: 0 });
   const endedRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [started, setStarted] = useState(false);
@@ -212,13 +220,42 @@ export function ImmersivePlayer({
   const total = end !== undefined ? end - start : 0;
   const progress = total > 0 ? Math.min(100, (elapsed / total) * 100) : 0;
 
+  /** Releases the held frame: real spring integration back to centre. */
+  const releaseSpring = useCallback((from: number, velocity: number) => {
+    if (springRef.current !== null) cancelAnimationFrame(springRef.current);
+    let x = from;
+    let v = velocity;
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min(0.032, (now - last) / 1000);
+      last = now;
+      v += (-SPRING_K * x - SPRING_C * v) * dt;
+      x += v * dt;
+      if (Math.abs(x) < 0.5 && Math.abs(v) < 6) {
+        setShift(0);
+        springRef.current = null;
+        return;
+      }
+      setShift(x);
+      springRef.current = requestAnimationFrame(step);
+    };
+    springRef.current = requestAnimationFrame(step);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (springRef.current !== null) cancelAnimationFrame(springRef.current);
+    },
+    [],
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-foreground">
+    <div className="player-surface fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden">
       {/* Letterboxed 16:9 frame centred in the portrait viewport. */}
       <div
         className={`pointer-events-none relative aspect-video w-full max-h-[100vh] max-w-[100vw] ${
           started ? "opacity-100" : ambient ? "ambient-in" : "scale-[0.98] opacity-45 blur-sm"
-        } ${dragging ? "" : "spring-back"}`}
+        }`}
         style={{ transform: `translateX(${shift}px) scale(${dragging ? 0.98 : 1})` }}
       >
         <div ref={hostRef} className="size-full" />
@@ -235,6 +272,9 @@ export function ImmersivePlayer({
           const now = Date.now();
           if (now - lastTap.current < DOUBLE_TAP_MS) {
             dragFrom.current = x;
+            if (springRef.current !== null) cancelAnimationFrame(springRef.current);
+            lastMove.current = { x: x ?? 0, t: performance.now() };
+            velocity.current = 0;
             setDragging(true);
             haptic("tap");
           }
@@ -243,7 +283,13 @@ export function ImmersivePlayer({
         onTouchMove={(event) => {
           if (dragFrom.current === null) return;
           const x = event.touches[0]?.clientX ?? dragFrom.current;
-          setShift(resist(x - dragFrom.current));
+          const next = resist(x - dragFrom.current);
+          const now = performance.now();
+          const dt = (now - lastMove.current.t) / 1000;
+          if (dt > 0) velocity.current = (next - shiftRef.current) / dt;
+          lastMove.current = { x, t: now };
+          shiftRef.current = next;
+          setShift(next);
         }}
         onTouchEnd={(event) => {
           const from = touchX.current;
@@ -252,7 +298,9 @@ export function ImmersivePlayer({
           if (dragFrom.current !== null) {
             dragFrom.current = null;
             setDragging(false);
-            setShift(0);
+            releaseSpring(shiftRef.current, velocity.current);
+            shiftRef.current = 0;
+            velocity.current = 0;
             return;
           }
           if (from !== null && to !== null && from - to > 60) rewind();

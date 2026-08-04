@@ -1,6 +1,6 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { Clock, Flame, Shuffle, Sparkles } from "lucide-react";
+import { Clock, Download, Flame, Shuffle, Sparkles } from "lucide-react";
 
 import { useAuth } from "@/hooks/useAuth";
 
@@ -64,6 +64,12 @@ function Landing() {
           </Link>
           <Link to="/auth" className="btn-chunky bg-secondary px-6 py-3.5 text-sm text-secondary-foreground">
             I have an account
+          </Link>
+          <Link
+            to="/download"
+            className="btn-chunky flex items-center gap-2 bg-gold px-6 py-3.5 text-sm text-gold-foreground"
+          >
+            <Download className="size-4" /> Download Android app
           </Link>
         </div>
 

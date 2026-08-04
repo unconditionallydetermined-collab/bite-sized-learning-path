@@ -35,6 +35,13 @@ export default defineConfig({
           ],
           shortcuts: [
             {
+              name: "Start a lesson",
+              short_name: "Lesson",
+              description: "Jump straight into your next learning bit.",
+              url: "/start",
+              icons: [{ src: "/images/icon-512.png", sizes: "512x512", type: "image/png" }],
+            },
+            {
               name: "Continue streak",
               short_name: "Continue",
               description: "Jump straight into your next lesson bit.",
