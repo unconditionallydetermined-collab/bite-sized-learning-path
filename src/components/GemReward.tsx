@@ -75,6 +75,81 @@ export function ChestReveal({ drop, onDone }: { drop: GemDrop; onDone: () => voi
   );
 }
 
+const CHEERS = [
+  "Nice one!",
+  "Bit banked!",
+  "You're rolling!",
+  "Sharp work!",
+  "Keep it going!",
+  "That's momentum!",
+];
+
+/**
+ * Per-bit payoff. Short, animated and self-dismissing so it rewards every single
+ * bit without ever getting in the way of the next one.
+ */
+export function BitComplete({
+  gems,
+  bitNumber,
+  totalBits,
+  streak,
+  streakDoneToday,
+  onDone,
+}: {
+  gems: number;
+  bitNumber: number;
+  totalBits: number;
+  streak: number;
+  streakDoneToday: boolean;
+  onDone: () => void;
+}) {
+  const counted = useCountUp(gems, 700);
+  const cheer = CHEERS[bitNumber % CHEERS.length];
+
+  useEffect(() => {
+    haptic("success");
+    playCompletionSfx();
+    const timer = window.setTimeout(onDone, 2200);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <button
+      type="button"
+      onClick={onDone}
+      aria-label="Continue"
+      className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-foreground/85 p-6 text-center"
+    >
+      {Array.from({ length: 10 }, (_, index) => (
+        <span
+          key={index}
+          aria-hidden
+          className="confetti"
+          style={{
+            left: `${(index * 53) % 100}%`,
+            background: index % 2 === 0 ? "var(--gold)" : "var(--primary)",
+            animationDelay: `${(index % 5) * 90}ms`,
+          }}
+        />
+      ))}
+      <div className="celebrate-pop">
+        <Mascot mood="happy" size={96} />
+      </div>
+      <p className="font-display text-2xl text-background">{cheer}</p>
+      <p className="count-pop flex items-center gap-1.5 font-display text-3xl text-primary">
+        <Gem className="size-6" /> +{counted}
+      </p>
+      <p className="text-xs font-bold uppercase tracking-widest text-background/70">
+        Lesson {bitNumber} of {totalBits} · {streakDoneToday ? `${streak} day streak safe` : "finish the video to extend your streak"}
+      </p>
+      <span className="rise-in text-[11px] font-bold uppercase tracking-widest text-background/50">
+        Tap to continue
+      </span>
+    </button>
+  );
+}
+
 /** End-of-video payoff: confetti + mascot + run summary. */
 export function CompletionCelebration({
   gems,

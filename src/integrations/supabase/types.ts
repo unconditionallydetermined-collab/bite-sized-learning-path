@@ -163,6 +163,7 @@ export type Database = {
           last_active_date: string | null
           longest_streak: number
           onboarded: boolean
+          song_credits: number
           streak_count: number
           streak_freezes: number
           updated_at: string
@@ -176,6 +177,7 @@ export type Database = {
           last_active_date?: string | null
           longest_streak?: number
           onboarded?: boolean
+          song_credits?: number
           streak_count?: number
           streak_freezes?: number
           updated_at?: string
@@ -189,6 +191,7 @@ export type Database = {
           last_active_date?: string | null
           longest_streak?: number
           onboarded?: boolean
+          song_credits?: number
           streak_count?: number
           streak_freezes?: number
           updated_at?: string

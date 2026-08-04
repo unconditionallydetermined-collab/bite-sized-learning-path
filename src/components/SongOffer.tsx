@@ -2,24 +2,31 @@ import { Headphones, Music, Save } from "lucide-react";
 
 import { songPrice, type Song } from "@/lib/songs";
 
-/** Post-completion song offer: play now for gems, or queue it for free. */
+/**
+ * Whole-video reward offer: play a song right now (gems or a banked credit), or
+ * bank the credit for later. Only ever shown after every bit of a video is done.
+ */
 export function SongOffer({
   song,
   gems,
+  credits,
   onPlayVideo,
   onPlayAudio,
+  onSaveCredit,
   onSaveForLater,
   onDismiss,
 }: {
   song: Song;
   gems: number;
+  credits: number;
   onPlayVideo: () => void;
   onPlayAudio: () => void;
+  onSaveCredit: () => void;
   onSaveForLater: () => void;
   onDismiss: () => void;
 }) {
   const price = songPrice(song.duration_seconds);
-  const affordable = gems >= price;
+  const affordable = gems >= price || credits > 0;
 
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-foreground/90 p-6">
@@ -28,10 +35,12 @@ export function SongOffer({
           <Music className="size-7" />
         </span>
         <div>
-          <h2 className="text-lg">Song unlocked?</h2>
+          <h2 className="text-lg">Video complete — song time?</h2>
           <p className="mt-1 text-sm text-muted-foreground">{song.title}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {price} gems for one play · you have {gems}
+            {credits > 0
+              ? `Uses 1 of your ${credits} song credit(s)`
+              : `${price} gems for one play · you have ${gems}`}
           </p>
         </div>
         <div className="space-y-2">
@@ -41,7 +50,7 @@ export function SongOffer({
             onClick={onPlayVideo}
             className="btn-chunky w-full bg-primary px-4 py-3 text-sm text-primary-foreground"
           >
-            Play once for {price} gems
+            {credits > 0 ? "Play once with a credit" : `Play once for ${price} gems`}
           </button>
           <button
             type="button"
@@ -53,10 +62,17 @@ export function SongOffer({
           </button>
           <button
             type="button"
+            onClick={onSaveCredit}
+            className="btn-chunky flex w-full items-center justify-center gap-2 bg-gold px-4 py-3 text-sm text-gold-foreground"
+          >
+            <Save className="size-4" /> Save the credit for later
+          </button>
+          <button
+            type="button"
             onClick={onSaveForLater}
             className="btn-chunky flex w-full items-center justify-center gap-2 bg-secondary px-4 py-3 text-sm text-secondary-foreground"
           >
-            <Save className="size-4" /> Save for the gym
+            <Save className="size-4" /> Just add this song to my jukebox
           </button>
           <button
             type="button"

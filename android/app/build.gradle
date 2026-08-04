@@ -1,0 +1,22 @@
+apply plugin: 'com.android.application'
+
+android {
+    namespace 'app.bitquest.wrapper'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "app.bitquest.wrapper"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // Debug-signed so the APK installs straight from the website download.
+            signingConfig signingConfigs.debug
+        }
+    }
+}
