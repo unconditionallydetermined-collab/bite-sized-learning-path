@@ -22,6 +22,19 @@ function isPersistable(queryKey: readonly unknown[]): boolean {
   return typeof queryKey[0] === "string" && PERSISTED_KEYS.has(queryKey[0]);
 }
 
+let persisterSingleton: ReturnType<typeof createSyncStoragePersister> | undefined;
+
+function getPersister() {
+  if (!persisterSingleton) {
+    persisterSingleton = createSyncStoragePersister({
+      storage: window.localStorage,
+      key: CACHE_VERSION,
+      throttleTime: 1000,
+    });
+  }
+  return persisterSingleton;
+}
+
 export function PersistedQueryProvider({
   client,
   children,
@@ -34,17 +47,11 @@ export function PersistedQueryProvider({
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
   }
 
-  const persister = createSyncStoragePersister({
-    storage: window.localStorage,
-    key: CACHE_VERSION,
-    throttleTime: 1000,
-  });
-
   return (
     <PersistQueryClientProvider
       client={client}
       persistOptions={{
-        persister,
+        persister: getPersister(),
         buster: CACHE_VERSION,
         maxAge: 1000 * 60 * 60 * 24 * 7,
         dehydrateOptions: {
