@@ -1,4 +1,4 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { QueryClient } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
@@ -16,6 +16,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { MiniPlayerProvider } from "@/components/MiniPlayer";
 import { registerServiceWorker } from "@/lib/pwa";
+import { PersistedQueryProvider } from "@/lib/query-persist";
 
 function NotFoundComponent() {
   return (
@@ -142,7 +143,7 @@ function RootComponent() {
   }, []);
 
   return (
-    <QueryClientProvider client={queryClient}>
+    <PersistedQueryProvider client={queryClient}>
       <AuthProvider>
         <MiniPlayerProvider>
           {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
@@ -151,6 +152,6 @@ function RootComponent() {
           <Toaster />
         </MiniPlayerProvider>
       </AuthProvider>
-    </QueryClientProvider>
+    </PersistedQueryProvider>
   );
 }
