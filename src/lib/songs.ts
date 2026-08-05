@@ -104,7 +104,7 @@ export async function fetchQueue(userId: string): Promise<QueueEntry[]> {
     .select("id, song_id, status, position, songs(id, title, youtube_url, video_id, duration_seconds)")
     .eq("user_id", userId)
     .order("position", { ascending: true });
-  return (data ?? []).flatMap((row) => {
+  const entries = (data ?? []).flatMap((row) => {
     const song = (row as { songs: Song | null }).songs;
     if (!song) return [];
     return [
@@ -117,6 +117,11 @@ export async function fetchQueue(userId: string): Promise<QueueEntry[]> {
       },
     ];
   });
+
+  // Saved/unlocked songs always show a proper title, backfilled once per song.
+  const titled = await withResolvedTitles(entries.map((entry) => entry.song));
+  const byId = new Map(titled.map((song) => [song.id, song]));
+  return entries.map((entry) => ({ ...entry, song: byId.get(entry.song.id) ?? entry.song }));
 }
 
 /** "Save for later" — no gems spent yet. */
