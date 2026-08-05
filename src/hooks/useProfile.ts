@@ -23,6 +23,10 @@ export function useProfile() {
   return useQuery({
     queryKey: ["profile", userId],
     enabled: Boolean(userId),
+    // Gems, streak and chest state must never come from a stale cache.
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
     queryFn: async (): Promise<LearnerProfile | null> => {
       const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
       if (!data) return null;

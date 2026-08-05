@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { extractVideoId } from "@/lib/parser";
 import { spendGems } from "@/lib/gems";
+import { cachedTitle, resolveSongTitles, type TitledSong } from "@/lib/song-titles";
 
 export type Song = {
   id: string;
@@ -65,7 +66,7 @@ export async function addSongs(
     return [
       {
         user_id: userId,
-        title: `Song ${videoId}`,
+        title: cachedTitle(videoId) ?? `Song ${videoId}`,
         youtube_url: link,
         video_id: videoId,
       },
@@ -77,13 +78,24 @@ export async function addSongs(
   return { added: rows.length, skipped };
 }
 
+/**
+ * Fills in real titles for any song still carrying a placeholder. Titles are
+ * fetched at most once per video (local cache + database backfill).
+ */
+async function withResolvedTitles<T extends TitledSong>(songs: T[]): Promise<T[]> {
+  if (songs.length === 0) return songs;
+  const resolved = await resolveSongTitles(songs);
+  if (Object.keys(resolved).length === 0) return songs;
+  return songs.map((song) => (resolved[song.id] ? { ...song, title: resolved[song.id]! } : song));
+}
+
 export async function fetchSongs(userId: string): Promise<Song[]> {
   const { data } = await supabase
     .from("songs")
     .select("id, title, youtube_url, video_id, duration_seconds")
     .eq("user_id", userId)
     .order("created_at", { ascending: true });
-  return (data ?? []) as Song[];
+  return withResolvedTitles((data ?? []) as Song[]);
 }
 
 export async function fetchQueue(userId: string): Promise<QueueEntry[]> {
@@ -92,7 +104,7 @@ export async function fetchQueue(userId: string): Promise<QueueEntry[]> {
     .select("id, song_id, status, position, songs(id, title, youtube_url, video_id, duration_seconds)")
     .eq("user_id", userId)
     .order("position", { ascending: true });
-  return (data ?? []).flatMap((row) => {
+  const entries = (data ?? []).flatMap((row) => {
     const song = (row as { songs: Song | null }).songs;
     if (!song) return [];
     return [
@@ -105,6 +117,11 @@ export async function fetchQueue(userId: string): Promise<QueueEntry[]> {
       },
     ];
   });
+
+  // Saved/unlocked songs always show a proper title, backfilled once per song.
+  const titled = await withResolvedTitles(entries.map((entry) => entry.song));
+  const byId = new Map(titled.map((song) => [song.id, song]));
+  return entries.map((entry) => ({ ...entry, song: byId.get(entry.song.id) ?? entry.song }));
 }
 
 /** "Save for later" — no gems spent yet. */
