@@ -12,6 +12,5 @@
             android:targetPackage="app.bitquest.wrapper"
             android:targetClass="app.bitquest.wrapper.MainActivity"
             android:data="bitquest://start" />
-        <categories android:name="android.shortcut.conversation" />
     </shortcut>
 </shortcuts>
