@@ -16,6 +16,7 @@ import { StreakExtended } from "@/components/StreakExtended";
 import { useMiniPlayer } from "@/components/MiniPlayer";
 import { UNIT_COMPLETE_BIT_INDEX, completeStreakDay, type StreakResult } from "@/lib/course-data";
 import { haptic } from "@/lib/haptics";
+import { recordLessonActivity } from "@/lib/notify";
 import { clearPlayhead } from "@/lib/playhead";
 import { recordCompletion, resetPace, shouldShowFullCelebration } from "@/lib/session-pace";
 import {
@@ -131,6 +132,8 @@ function LearnPage() {
   const handleBitEnd = async () => {
     if (!activeBit || activeIndex === null) return;
     await saveBit(activeBit);
+    // Local-only activity histogram, used to time the daily reminder.
+    recordLessonActivity(activeBit.seconds);
     const drop = rollBitReward();
     await awardGems(userId, drop.amount);
     setRunGems((value) => value + drop.amount);
@@ -295,6 +298,7 @@ function LearnPage() {
         segment={activeBit ? { start: activeBit.start, end: activeBit.end } : undefined}
         label={`Bit ${(activeIndex ?? 0) + 1} / ${bits.length || "—"} · ${unit.title}`}
         sublabel={activeBit ? formatClock(activeBit.seconds) : ""}
+        noteBit={activeIndex ?? 0}
         onDuration={(duration) => {
           if (bits.length === 0) planBits(duration);
         }}

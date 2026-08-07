@@ -25,6 +25,6 @@
       applicationId="app.bitquest.wrapper"
       generatedSourceFolders="build/generated/ap_generated_sources/release/out"
       generatedResourceFolders="build/generated/res/resValues/release"
-      desugaredMethodsFiles="/root/.gradle/caches/transforms-3/9c840695516d875fae5474aad6a68868/transformed/D8BackportedDesugaredMethods.txt">
+      desugaredMethodsFiles="/root/.gradle/caches/8.14.4/transforms/9d4a6caddfa95a16ffce01486b2733f8/transformed/D8BackportedDesugaredMethods.txt">
   </mainArtifact>
 </variant>

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, X } from "lucide-react";
+import { NotebookPen, Play, X } from "lucide-react";
 
 import { haptic } from "@/lib/haptics";
+import { loadNote, saveNote } from "@/lib/notes";
 import { getPlayhead, setPlayhead } from "@/lib/playhead";
 
 type YTPlayer = {
@@ -68,6 +69,7 @@ export function ImmersivePlayer({
   sublabel,
   exitPrompt = "Leave and lose your progress on this lesson?",
   resume = false,
+  noteBit,
   onSegmentEnd,
   onDuration,
   onExit,
@@ -80,6 +82,11 @@ export function ImmersivePlayer({
   exitPrompt?: string;
   /** Resume from the stored playhead instead of the segment start. */
   resume?: boolean;
+  /**
+   * Enables the local double-tap notepad for this lesson. The value scopes the
+   * saved note (one page per bit); omit it for songs.
+   */
+  noteBit?: number | null | undefined;
   onSegmentEnd?: (() => void) | undefined;
   onDuration?: ((seconds: number) => void) | undefined;
   onExit: () => void;
@@ -95,6 +102,11 @@ export function ImmersivePlayer({
   const velocity = useRef(0);
   const lastMove = useRef({ x: 0, t: 0 });
   const endedRef = useRef(false);
+  const movedRef = useRef(false);
+  const tapStart = useRef({ y: 0, t: 0 });
+  const wantStart = useRef(false);
+  const lastSpace = useRef(0);
+  const noteRef = useRef<HTMLTextAreaElement>(null);
   const [ready, setReady] = useState(false);
   const [started, setStarted] = useState(false);
   const [ambient, setAmbient] = useState(false);
@@ -104,6 +116,10 @@ export function ImmersivePlayer({
   const [rewindPulse, setRewindPulse] = useState(false);
   const [shift, setShift] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [note, setNote] = useState("");
+
+  const notesEnabled = noteBit !== undefined && noteBit !== null;
 
   const start = segment?.start ?? 0;
   const end = segment?.end;
@@ -183,8 +199,14 @@ export function ImmersivePlayer({
 
   const beginPlayback = useCallback(() => {
     const player = playerRef.current;
-    if (!player || started) return;
+    if (started || ambient) return;
     haptic("tap");
+    // A tap before the iframe is ready is remembered instead of dropped, so the
+    // very first tap always starts playback once the player reports ready.
+    if (!player || !ready) {
+      wantStart.current = true;
+      return;
+    }
     setAmbient(true);
     window.setTimeout(() => {
       player.seekTo(entryPoint(), true);
@@ -193,7 +215,15 @@ export function ImmersivePlayer({
       setPlaying(true);
     }, 620);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [start, started]);
+  }, [start, started, ready, ambient]);
+
+  // Flush a tap that landed before the player was ready.
+  useEffect(() => {
+    if (ready && wantStart.current && !started && !ambient) {
+      wantStart.current = false;
+      beginPlayback();
+    }
+  }, [ready, started, ambient, beginPlayback]);
 
   const togglePlay = useCallback(() => {
     const player = playerRef.current;
@@ -249,11 +279,43 @@ export function ImmersivePlayer({
     [],
   );
 
+  /** Load this lesson's local note page whenever the bit changes. */
+  useEffect(() => {
+    if (!notesEnabled) return;
+    setNote(loadNote(videoId, noteBit));
+    setNotesOpen(false);
+  }, [videoId, noteBit, notesEnabled]);
+
+  const openNotes = useCallback(() => {
+    if (!notesEnabled) return;
+    haptic("tap");
+    setNotesOpen(true);
+    window.setTimeout(() => noteRef.current?.focus(), 220);
+  }, [notesEnabled]);
+
+  const closeNotes = useCallback(() => {
+    if (!notesOpen) return;
+    haptic("tap");
+    noteRef.current?.blur();
+    setNotesOpen(false);
+  }, [notesOpen]);
+
+  const updateNote = (value: string) => {
+    setNote(value);
+    saveNote(videoId, noteBit, value);
+  };
+
   return (
-    <div className="player-surface fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden">
+    <div
+      className={`player-surface fixed inset-0 z-50 flex flex-col items-center overflow-hidden ${
+        notesOpen ? "justify-start" : "justify-center"
+      }`}
+    >
       {/* Letterboxed 16:9 frame centred in the portrait viewport. */}
       <div
-        className={`pointer-events-none relative aspect-video w-full max-h-[100vh] max-w-[100vw] ${
+        className={`pointer-events-none relative aspect-video max-h-[100vh] max-w-[100vw] transition-[width,margin] duration-300 ease-out ${
+          notesOpen ? "mt-2 w-[76%]" : "w-full"
+        } ${
           started ? "opacity-100" : ambient ? "ambient-in" : "scale-[0.98] opacity-45 blur-sm"
         }`}
         style={{ transform: `translateX(${shift}px) scale(${dragging ? 0.98 : 1})` }}
@@ -261,14 +323,24 @@ export function ImmersivePlayer({
         <div ref={hostRef} className="size-full" />
       </div>
 
-      {/* Tap = play/pause. Quick left swipe = rewind. Double-tap + hold + slide = elastic nudge. */}
+      {/* Tap = play/pause. Quick left swipe = rewind. Double-tap + hold + slide =
+          elastic nudge. Double-tap without sliding = notepad. Swipe down = close it. */}
       <button
         type="button"
         aria-label={playing ? "Pause" : "Play"}
-        onClick={started && shift === 0 ? togglePlay : undefined}
+        onClick={() => {
+          if (!started) {
+            beginPlayback();
+            return;
+          }
+          if (shift === 0) togglePlay();
+        }}
+        onDoubleClick={openNotes}
         onTouchStart={(event) => {
           const x = event.touches[0]?.clientX ?? null;
           touchX.current = x;
+          tapStart.current = { y: event.touches[0]?.clientY ?? 0, t: Date.now() };
+          movedRef.current = false;
           const now = Date.now();
           if (now - lastTap.current < DOUBLE_TAP_MS) {
             dragFrom.current = x;
@@ -281,8 +353,12 @@ export function ImmersivePlayer({
           lastTap.current = now;
         }}
         onTouchMove={(event) => {
+          const currentY = event.touches[0]?.clientY ?? tapStart.current.y;
           if (dragFrom.current === null) return;
           const x = event.touches[0]?.clientX ?? dragFrom.current;
+          if (Math.abs(x - dragFrom.current) > 8 || Math.abs(currentY - tapStart.current.y) > 8) {
+            movedRef.current = true;
+          }
           const next = resist(x - dragFrom.current);
           const now = performance.now();
           const dt = (now - lastMove.current.t) / 1000;
@@ -294,25 +370,39 @@ export function ImmersivePlayer({
         onTouchEnd={(event) => {
           const from = touchX.current;
           const to = event.changedTouches[0]?.clientX ?? null;
+          const toY = event.changedTouches[0]?.clientY ?? null;
           touchX.current = null;
           if (dragFrom.current !== null) {
+            const heldStill = !movedRef.current;
             dragFrom.current = null;
             setDragging(false);
             releaseSpring(shiftRef.current, velocity.current);
             shiftRef.current = 0;
             velocity.current = 0;
+            // A clean double-tap (no slide) opens the local notepad.
+            if (heldStill && notesEnabled) {
+              if (notesOpen) closeNotes();
+              else openNotes();
+            }
+            return;
+          }
+          // Swipe down over the video closes the notepad.
+          if (notesOpen && toY !== null && toY - tapStart.current.y > 60) {
+            closeNotes();
             return;
           }
           if (from !== null && to !== null && from - to > 60) rewind();
         }}
-        className="absolute inset-0 cursor-pointer bg-transparent"
+        className={`absolute inset-x-0 top-0 cursor-pointer bg-transparent ${
+          notesOpen ? "h-[46vh]" : "bottom-0"
+        }`}
       />
 
       {!started && (
         <button
           type="button"
           onClick={beginPlayback}
-          disabled={!ready || ambient}
+          disabled={ambient}
           aria-label="Start playback"
           className={`tap-bounce absolute z-10 flex size-24 items-center justify-center rounded-full border-4 border-background/70 bg-primary text-primary-foreground shadow-chunky transition-all duration-500 ${
             ambient ? "scale-150 opacity-0" : "play-glow"
@@ -358,6 +448,44 @@ export function ImmersivePlayer({
       )}
 
       {overlay}
+
+      {notesOpen && (
+        <div className="rise-in absolute inset-x-0 bottom-0 top-[46vh] z-20 flex flex-col gap-2 border-t-2 border-border bg-card px-4 pb-4 pt-3">
+          <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">
+            <span className="flex items-center gap-1.5 text-foreground">
+              <NotebookPen className="size-3.5" /> Lesson notes · on this device
+            </span>
+            <button type="button" onClick={closeNotes} className="tap-bounce text-primary">
+              Done
+            </button>
+          </div>
+          <textarea
+            ref={noteRef}
+            value={note}
+            onChange={(event) => updateNote(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== " ") return;
+              const now = Date.now();
+              if (now - lastSpace.current < 400) {
+                // Double space bar = play/pause instead of typing a second space.
+                event.preventDefault();
+                lastSpace.current = 0;
+                const target = event.currentTarget;
+                const cursor = target.selectionStart;
+                if (cursor > 0 && note[cursor - 1] === " ") {
+                  updateNote(note.slice(0, cursor - 1) + note.slice(cursor));
+                  window.setTimeout(() => target.setSelectionRange(cursor - 1, cursor - 1), 0);
+                }
+                togglePlay();
+                return;
+              }
+              lastSpace.current = now;
+            }}
+            placeholder="Jot what clicked for you… (double-tap space to play/pause, swipe down on the video to close)"
+            className="flex-1 resize-none rounded-2xl border-2 border-border bg-background p-3 text-sm outline-none focus:border-primary"
+          />
+        </div>
+      )}
 
       {confirmExit && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-foreground/85 p-6">

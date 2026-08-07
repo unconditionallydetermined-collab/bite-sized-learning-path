@@ -1,7 +1,16 @@
 R_DEF: Internal format may change without notice
 local
+drawable widget_background
+id widget_gems_value
+id widget_root
+id widget_streak_value
+layout widget_streak
 mipmap ic_launcher
 string app_name
 string shortcut_lesson_long
 string shortcut_lesson_short
+string widget_cta
+string widget_description
+string widget_label
 xml shortcuts
+xml widget_streak_info

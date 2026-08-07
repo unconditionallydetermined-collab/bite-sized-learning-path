@@ -5,6 +5,10 @@ import { Clock, Download, Flame, Shuffle, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/")({
+  // The home-screen quick action lands here (a guaranteed-to-exist URL) and is
+  // handed straight to the lesson launcher — no deep-link 404 risk.
+  validateSearch: (search: Record<string, unknown>): { start?: "lesson" } =>
+    search['start'] === "lesson" ? { start: "lesson" } : {},
   head: () => ({
     meta: [
       { title: "BitQuest — Micro-learning quests from any video course" },
@@ -32,11 +36,17 @@ const FEATURES = [
 
 function Landing() {
   const { session, loading } = useAuth();
+  const { start } = Route.useSearch();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && session) void navigate({ to: "/path", replace: true });
-  }, [loading, session, navigate]);
+    if (loading) return;
+    if (session) {
+      void navigate({ to: start === "lesson" ? "/start" : "/path", replace: true });
+      return;
+    }
+    if (start === "lesson") void navigate({ to: "/auth", replace: true });
+  }, [loading, session, start, navigate]);
 
   return (
     <div className="min-h-screen bg-background">

@@ -6,7 +6,7 @@
     maven="BitQuest:app:"
     agpVersion="8.1.4"
     buildFolder="build"
-    bootClassPath="/tmp/apk/sdk/platforms/android-34/android.jar:/tmp/apk/sdk/build-tools/33.0.1/core-lambda-stubs.jar"
+    bootClassPath="/tmp/asdk/platforms/android-34/android.jar:/tmp/asdk/build-tools/33.0.1/core-lambda-stubs.jar"
     javaSourceLevel="1.8"
     compileTarget="android-34"
     neverShrinking="true">
