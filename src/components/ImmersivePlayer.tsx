@@ -199,8 +199,14 @@ export function ImmersivePlayer({
 
   const beginPlayback = useCallback(() => {
     const player = playerRef.current;
-    if (!player || started) return;
+    if (started || ambient) return;
     haptic("tap");
+    // A tap before the iframe is ready is remembered instead of dropped, so the
+    // very first tap always starts playback once the player reports ready.
+    if (!player || !ready) {
+      wantStart.current = true;
+      return;
+    }
     setAmbient(true);
     window.setTimeout(() => {
       player.seekTo(entryPoint(), true);
@@ -209,7 +215,15 @@ export function ImmersivePlayer({
       setPlaying(true);
     }, 620);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [start, started]);
+  }, [start, started, ready, ambient]);
+
+  // Flush a tap that landed before the player was ready.
+  useEffect(() => {
+    if (ready && wantStart.current && !started && !ambient) {
+      wantStart.current = false;
+      beginPlayback();
+    }
+  }, [ready, started, ambient, beginPlayback]);
 
   const togglePlay = useCallback(() => {
     const player = playerRef.current;
