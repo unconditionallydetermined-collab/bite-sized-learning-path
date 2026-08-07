@@ -402,7 +402,7 @@ export function ImmersivePlayer({
         <button
           type="button"
           onClick={beginPlayback}
-          disabled={!ready || ambient}
+          disabled={ambient}
           aria-label="Start playback"
           className={`tap-bounce absolute z-10 flex size-24 items-center justify-center rounded-full border-4 border-background/70 bg-primary text-primary-foreground shadow-chunky transition-all duration-500 ${
             ambient ? "scale-150 opacity-0" : "play-glow"
