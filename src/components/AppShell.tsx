@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { BottomNav } from "@/components/BottomNav";
 import { useProfile } from "@/hooks/useProfile";
+import { useDailyNudge } from "@/hooks/useDailyNudge";
 import { haptic } from "@/lib/haptics";
 
 export function AppShell({
@@ -16,6 +17,7 @@ export function AppShell({
   children: ReactNode;
 }) {
   const { data: profile } = useProfile();
+  useDailyNudge(profile?.streak_count ?? 0, profile?.gems ?? 0);
 
   return (
     <div className="min-h-screen bg-background pb-52">
