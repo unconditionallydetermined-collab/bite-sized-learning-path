@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Play, X } from "lucide-react";
+import { NotebookPen, Play, X } from "lucide-react";
 
 import { haptic } from "@/lib/haptics";
+import { loadNote, saveNote } from "@/lib/notes";
 import { getPlayhead, setPlayhead } from "@/lib/playhead";
 
 type YTPlayer = {
