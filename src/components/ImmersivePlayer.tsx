@@ -69,6 +69,7 @@ export function ImmersivePlayer({
   sublabel,
   exitPrompt = "Leave and lose your progress on this lesson?",
   resume = false,
+  noteBit,
   onSegmentEnd,
   onDuration,
   onExit,
@@ -81,6 +82,11 @@ export function ImmersivePlayer({
   exitPrompt?: string;
   /** Resume from the stored playhead instead of the segment start. */
   resume?: boolean;
+  /**
+   * Enables the local double-tap notepad for this lesson. The value scopes the
+   * saved note (one page per bit); omit it for songs.
+   */
+  noteBit?: number | null | undefined;
   onSegmentEnd?: (() => void) | undefined;
   onDuration?: ((seconds: number) => void) | undefined;
   onExit: () => void;
