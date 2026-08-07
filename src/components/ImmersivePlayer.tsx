@@ -102,6 +102,11 @@ export function ImmersivePlayer({
   const velocity = useRef(0);
   const lastMove = useRef({ x: 0, t: 0 });
   const endedRef = useRef(false);
+  const movedRef = useRef(false);
+  const tapStart = useRef({ y: 0, t: 0 });
+  const wantStart = useRef(false);
+  const lastSpace = useRef(0);
+  const noteRef = useRef<HTMLTextAreaElement>(null);
   const [ready, setReady] = useState(false);
   const [started, setStarted] = useState(false);
   const [ambient, setAmbient] = useState(false);
@@ -111,6 +116,10 @@ export function ImmersivePlayer({
   const [rewindPulse, setRewindPulse] = useState(false);
   const [shift, setShift] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [note, setNote] = useState("");
+
+  const notesEnabled = noteBit !== undefined && noteBit !== null;
 
   const start = segment?.start ?? 0;
   const end = segment?.end;
