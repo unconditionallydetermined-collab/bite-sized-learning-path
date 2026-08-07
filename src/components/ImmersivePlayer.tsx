@@ -279,11 +279,43 @@ export function ImmersivePlayer({
     [],
   );
 
+  /** Load this lesson's local note page whenever the bit changes. */
+  useEffect(() => {
+    if (!notesEnabled) return;
+    setNote(loadNote(videoId, noteBit));
+    setNotesOpen(false);
+  }, [videoId, noteBit, notesEnabled]);
+
+  const openNotes = useCallback(() => {
+    if (!notesEnabled) return;
+    haptic("tap");
+    setNotesOpen(true);
+    window.setTimeout(() => noteRef.current?.focus(), 220);
+  }, [notesEnabled]);
+
+  const closeNotes = useCallback(() => {
+    if (!notesOpen) return;
+    haptic("tap");
+    noteRef.current?.blur();
+    setNotesOpen(false);
+  }, [notesOpen]);
+
+  const updateNote = (value: string) => {
+    setNote(value);
+    saveNote(videoId, noteBit, value);
+  };
+
   return (
-    <div className="player-surface fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden">
+    <div
+      className={`player-surface fixed inset-0 z-50 flex flex-col items-center overflow-hidden ${
+        notesOpen ? "justify-start" : "justify-center"
+      }`}
+    >
       {/* Letterboxed 16:9 frame centred in the portrait viewport. */}
       <div
-        className={`pointer-events-none relative aspect-video w-full max-h-[100vh] max-w-[100vw] ${
+        className={`pointer-events-none relative aspect-video max-h-[100vh] max-w-[100vw] transition-[width,margin] duration-300 ease-out ${
+          notesOpen ? "mt-2 w-[76%]" : "w-full"
+        } ${
           started ? "opacity-100" : ambient ? "ambient-in" : "scale-[0.98] opacity-45 blur-sm"
         }`}
         style={{ transform: `translateX(${shift}px) scale(${dragging ? 0.98 : 1})` }}
