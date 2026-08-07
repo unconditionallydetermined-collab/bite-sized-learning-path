@@ -13,7 +13,7 @@
 11-->/dev-server/android/app/src/main/AndroidManifest.xml:4:22-64
 12
 13    <application
-13-->/dev-server/android/app/src/main/AndroidManifest.xml:6:5-31:19
+13-->/dev-server/android/app/src/main/AndroidManifest.xml:6:5-45:19
 14        android:allowBackup="true"
 14-->/dev-server/android/app/src/main/AndroidManifest.xml:7:9-35
 15        android:extractNativeLibs="false"
@@ -26,7 +26,7 @@
 19        android:usesCleartextTraffic="false" >
 19-->/dev-server/android/app/src/main/AndroidManifest.xml:10:9-45
 20        <activity
-20-->/dev-server/android/app/src/main/AndroidManifest.xml:13:9-30:20
+20-->/dev-server/android/app/src/main/AndroidManifest.xml:13:9-31:20
 21            android:name="app.bitquest.wrapper.MainActivity"
 21-->/dev-server/android/app/src/main/AndroidManifest.xml:14:13-41
 22            android:configChanges="orientation|screenSize|keyboardHidden"
@@ -46,7 +46,7 @@
 28-->/dev-server/android/app/src/main/AndroidManifest.xml:20:27-74
 29            </intent-filter>
 30            <intent-filter>
-30-->/dev-server/android/app/src/main/AndroidManifest.xml:22:13-26:29
+30-->/dev-server/android/app/src/main/AndroidManifest.xml:22:13-27:29
 31                <action android:name="android.intent.action.VIEW" />
 31-->/dev-server/android/app/src/main/AndroidManifest.xml:23:17-69
 31-->/dev-server/android/app/src/main/AndroidManifest.xml:23:25-66
@@ -54,19 +54,46 @@
 33                <category android:name="android.intent.category.DEFAULT" />
 33-->/dev-server/android/app/src/main/AndroidManifest.xml:24:17-76
 33-->/dev-server/android/app/src/main/AndroidManifest.xml:24:27-73
-34
-35                <data android:scheme="bitquest" />
-35-->/dev-server/android/app/src/main/AndroidManifest.xml:25:17-51
-35-->/dev-server/android/app/src/main/AndroidManifest.xml:25:23-48
-36            </intent-filter>
-37
-38            <meta-data
-38-->/dev-server/android/app/src/main/AndroidManifest.xml:27:13-29:53
-39                android:name="android.app.shortcuts"
-39-->/dev-server/android/app/src/main/AndroidManifest.xml:28:17-53
-40                android:resource="@xml/shortcuts" />
-40-->/dev-server/android/app/src/main/AndroidManifest.xml:29:17-50
-41        </activity>
-42    </application>
+34                <category android:name="android.intent.category.BROWSABLE" />
+34-->/dev-server/android/app/src/main/AndroidManifest.xml:25:17-78
+34-->/dev-server/android/app/src/main/AndroidManifest.xml:25:27-75
+35
+36                <data android:scheme="bitquest" />
+36-->/dev-server/android/app/src/main/AndroidManifest.xml:26:17-51
+36-->/dev-server/android/app/src/main/AndroidManifest.xml:26:23-48
+37            </intent-filter>
+38
+39            <meta-data
+39-->/dev-server/android/app/src/main/AndroidManifest.xml:28:13-30:53
+40                android:name="android.app.shortcuts"
+40-->/dev-server/android/app/src/main/AndroidManifest.xml:29:17-53
+41                android:resource="@xml/shortcuts" />
+41-->/dev-server/android/app/src/main/AndroidManifest.xml:30:17-50
+42        </activity>
 43
-44</manifest>
+44        <!-- Home-screen widget: streak, gems, one-tap lesson. -->
+45        <receiver
+45-->/dev-server/android/app/src/main/AndroidManifest.xml:34:9-44:20
+46            android:name="app.bitquest.wrapper.StreakWidget"
+46-->/dev-server/android/app/src/main/AndroidManifest.xml:35:13-41
+47            android:exported="false"
+47-->/dev-server/android/app/src/main/AndroidManifest.xml:37:13-37
+48            android:label="@string/widget_label" >
+48-->/dev-server/android/app/src/main/AndroidManifest.xml:36:13-49
+49            <intent-filter>
+49-->/dev-server/android/app/src/main/AndroidManifest.xml:38:13-40:29
+50                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+50-->/dev-server/android/app/src/main/AndroidManifest.xml:39:17-84
+50-->/dev-server/android/app/src/main/AndroidManifest.xml:39:25-81
+51            </intent-filter>
+52
+53            <meta-data
+53-->/dev-server/android/app/src/main/AndroidManifest.xml:41:13-43:62
+54                android:name="android.appwidget.provider"
+54-->/dev-server/android/app/src/main/AndroidManifest.xml:42:17-58
+55                android:resource="@xml/widget_streak_info" />
+55-->/dev-server/android/app/src/main/AndroidManifest.xml:43:17-59
+56        </receiver>
+57    </application>
+58
+59</manifest>
