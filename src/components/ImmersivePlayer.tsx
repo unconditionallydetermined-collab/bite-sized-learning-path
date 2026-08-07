@@ -323,14 +323,24 @@ export function ImmersivePlayer({
         <div ref={hostRef} className="size-full" />
       </div>
 
-      {/* Tap = play/pause. Quick left swipe = rewind. Double-tap + hold + slide = elastic nudge. */}
+      {/* Tap = play/pause. Quick left swipe = rewind. Double-tap + hold + slide =
+          elastic nudge. Double-tap without sliding = notepad. Swipe down = close it. */}
       <button
         type="button"
         aria-label={playing ? "Pause" : "Play"}
-        onClick={started && shift === 0 ? togglePlay : undefined}
+        onClick={() => {
+          if (!started) {
+            beginPlayback();
+            return;
+          }
+          if (shift === 0) togglePlay();
+        }}
+        onDoubleClick={openNotes}
         onTouchStart={(event) => {
           const x = event.touches[0]?.clientX ?? null;
           touchX.current = x;
+          tapStart.current = { y: event.touches[0]?.clientY ?? 0, t: Date.now() };
+          movedRef.current = false;
           const now = Date.now();
           if (now - lastTap.current < DOUBLE_TAP_MS) {
             dragFrom.current = x;
@@ -343,8 +353,12 @@ export function ImmersivePlayer({
           lastTap.current = now;
         }}
         onTouchMove={(event) => {
+          const currentY = event.touches[0]?.clientY ?? tapStart.current.y;
           if (dragFrom.current === null) return;
           const x = event.touches[0]?.clientX ?? dragFrom.current;
+          if (Math.abs(x - dragFrom.current) > 8 || Math.abs(currentY - tapStart.current.y) > 8) {
+            movedRef.current = true;
+          }
           const next = resist(x - dragFrom.current);
           const now = performance.now();
           const dt = (now - lastMove.current.t) / 1000;
@@ -356,18 +370,32 @@ export function ImmersivePlayer({
         onTouchEnd={(event) => {
           const from = touchX.current;
           const to = event.changedTouches[0]?.clientX ?? null;
+          const toY = event.changedTouches[0]?.clientY ?? null;
           touchX.current = null;
           if (dragFrom.current !== null) {
+            const heldStill = !movedRef.current;
             dragFrom.current = null;
             setDragging(false);
             releaseSpring(shiftRef.current, velocity.current);
             shiftRef.current = 0;
             velocity.current = 0;
+            // A clean double-tap (no slide) opens the local notepad.
+            if (heldStill && notesEnabled) {
+              if (notesOpen) closeNotes();
+              else openNotes();
+            }
+            return;
+          }
+          // Swipe down over the video closes the notepad.
+          if (notesOpen && toY !== null && toY - tapStart.current.y > 60) {
+            closeNotes();
             return;
           }
           if (from !== null && to !== null && from - to > 60) rewind();
         }}
-        className="absolute inset-0 cursor-pointer bg-transparent"
+        className={`absolute inset-x-0 top-0 cursor-pointer bg-transparent ${
+          notesOpen ? "h-[46vh]" : "bottom-0"
+        }`}
       />
 
       {!started && (
