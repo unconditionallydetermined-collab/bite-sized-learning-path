@@ -449,6 +449,44 @@ export function ImmersivePlayer({
 
       {overlay}
 
+      {notesOpen && (
+        <div className="rise-in absolute inset-x-0 bottom-0 top-[46vh] z-20 flex flex-col gap-2 border-t-2 border-border bg-card px-4 pb-4 pt-3">
+          <div className="flex items-center justify-between text-[11px] font-extrabold uppercase tracking-widest text-muted-foreground">
+            <span className="flex items-center gap-1.5 text-foreground">
+              <NotebookPen className="size-3.5" /> Lesson notes · on this device
+            </span>
+            <button type="button" onClick={closeNotes} className="tap-bounce text-primary">
+              Done
+            </button>
+          </div>
+          <textarea
+            ref={noteRef}
+            value={note}
+            onChange={(event) => updateNote(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== " ") return;
+              const now = Date.now();
+              if (now - lastSpace.current < 400) {
+                // Double space bar = play/pause instead of typing a second space.
+                event.preventDefault();
+                lastSpace.current = 0;
+                const target = event.currentTarget;
+                const cursor = target.selectionStart;
+                if (cursor > 0 && note[cursor - 1] === " ") {
+                  updateNote(note.slice(0, cursor - 1) + note.slice(cursor));
+                  window.setTimeout(() => target.setSelectionRange(cursor - 1, cursor - 1), 0);
+                }
+                togglePlay();
+                return;
+              }
+              lastSpace.current = now;
+            }}
+            placeholder="Jot what clicked for you… (double-tap space to play/pause, swipe down on the video to close)"
+            className="flex-1 resize-none rounded-2xl border-2 border-border bg-background p-3 text-sm outline-none focus:border-primary"
+          />
+        </div>
+      )}
+
       {confirmExit && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-foreground/85 p-6">
           <div className="rise-in w-full max-w-sm rounded-3xl border-2 border-border bg-card p-6 text-center shadow-chunky">
