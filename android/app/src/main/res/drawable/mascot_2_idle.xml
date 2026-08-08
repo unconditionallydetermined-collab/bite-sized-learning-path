@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- mascot_2, idle mood: two-frame line-art loop, uneven timing. -->
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android" android:oneshot="false">
+    <item android:drawable="@drawable/mascot_2_a" android:duration="1600" />
+    <item android:drawable="@drawable/mascot_2_b" android:duration="340" />
+</animation-list>

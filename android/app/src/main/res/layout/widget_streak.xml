@@ -1,36 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!--
+  Monochrome, hypnotic streak widget: black field, white linework only.
+  A breathing ring sits behind a rotating cast of line-art characters, with a
+  flickering streak dot as an understated "come back" cue.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="12dp"
+    android:padding="10dp"
     android:background="@drawable/widget_background">
 
-    <TextView
-        android:id="@+id/widget_streak_value"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="18sp"
-        android:textStyle="bold"
-        android:textColor="#121416"
-        android:text="0 day streak" />
+    <ImageView
+        android:id="@+id/widget_pulse"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
+        android:layout_gravity="center_horizontal|top"
+        android:layout_marginTop="2dp"
+        android:contentDescription="@string/widget_label"
+        android:src="@drawable/breathe_slow" />
 
-    <TextView
-        android:id="@+id/widget_gems_value"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="13sp"
-        android:textColor="#4A4A4A"
-        android:text="0 gems" />
+    <ImageView
+        android:id="@+id/widget_mascot"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_gravity="center_horizontal|top"
+        android:layout_marginTop="20dp"
+        android:contentDescription="@string/widget_label"
+        android:src="@drawable/mascot_1_idle" />
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="6dp"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:textColor="#B07800"
-        android:text="@string/widget_cta" />
-</LinearLayout>
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:gravity="center_horizontal">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/widget_flicker"
+                android:layout_width="6dp"
+                android:layout_height="6dp"
+                android:layout_marginEnd="6dp"
+                android:contentDescription="@string/widget_label"
+                android:src="@drawable/flicker_streak" />
+
+            <TextView
+                android:id="@+id/widget_streak_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.02"
+                android:textColor="#FFFFFFFF"
+                android:text="0 day streak" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/widget_gems_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:textColor="#99FFFFFF"
+            android:text="0 gems" />
+
+        <TextView
+            android:id="@+id/widget_mood"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:textSize="10sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08"
+            android:textColor="#66FFFFFF"
+            android:text="@string/widget_cta" />
+    </LinearLayout>
+</FrameLayout>

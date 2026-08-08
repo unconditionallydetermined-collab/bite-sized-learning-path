@@ -51,6 +51,17 @@ const SPRING_K = 190;
 const SPRING_C = 12;
 
 /**
+ * How close to the segment end counts as finished. Short bits used to fall just
+ * shy of the old fixed 0.25s window (YouTube's clock quantises and a short clip
+ * can stall a beat early), so the window scales with the bit and never dips
+ * below half a second.
+ */
+function endTolerance(start: number, end: number): number {
+  const span = Math.max(1, end - start);
+  return Math.min(1.5, Math.max(0.5, span * 0.04));
+}
+
+/**
  * One immersive player reused for lesson bits and full songs.
  *
  * Layout is portrait-friendly letterboxing: the video keeps its native 16:9
@@ -186,7 +197,7 @@ export function ImmersivePlayer({
       const current = player.getCurrentTime();
       setElapsed(Math.max(0, current - start));
       setPlayhead(videoId, current);
-      if (end !== undefined && current >= end - 0.25 && !endedRef.current) {
+      if (end !== undefined && current >= end - endTolerance(start, end) && !endedRef.current) {
         endedRef.current = true;
         player.pauseVideo();
         setPlaying(false);
@@ -196,6 +207,33 @@ export function ImmersivePlayer({
     return () => window.clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, started, start, end, videoId]);
+
+  /**
+   * Leaving mid-bit must not lose a bit the learner actually finished: if the
+   * playhead already crossed the end threshold, the completion fires now.
+   */
+  useEffect(() => {
+    const settle = () => {
+      const player = playerRef.current;
+      if (!player || endedRef.current || end === undefined) return;
+      const current = player.getCurrentTime?.() ?? 0;
+      if (current >= end - endTolerance(start, end)) {
+        endedRef.current = true;
+        onSegmentEnd?.();
+      }
+    };
+    const onHide = () => {
+      if (document.visibilityState === "hidden") settle();
+    };
+    window.addEventListener("pagehide", settle);
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      window.removeEventListener("pagehide", settle);
+      document.removeEventListener("visibilitychange", onHide);
+      settle();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [start, end]);
 
   const beginPlayback = useCallback(() => {
     const player = playerRef.current;

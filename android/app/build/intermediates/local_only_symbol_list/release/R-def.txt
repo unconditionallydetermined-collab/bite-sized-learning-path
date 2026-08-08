@@ -1,7 +1,37 @@
 R_DEF: Internal format may change without notice
 local
+drawable breathe_fast
+drawable breathe_slow
+drawable dot_bright
+drawable dot_dim
+drawable dot_faint
+drawable flicker_streak
+drawable mascot_1_a
+drawable mascot_1_b
+drawable mascot_1_idle
+drawable mascot_1_waiting
+drawable mascot_2_a
+drawable mascot_2_b
+drawable mascot_2_idle
+drawable mascot_2_waiting
+drawable mascot_3_a
+drawable mascot_3_b
+drawable mascot_3_idle
+drawable mascot_3_waiting
+drawable mascot_4_a
+drawable mascot_4_b
+drawable mascot_4_idle
+drawable mascot_4_waiting
+drawable ring_1
+drawable ring_2
+drawable ring_3
+drawable ring_4
 drawable widget_background
+id widget_flicker
 id widget_gems_value
+id widget_mascot
+id widget_mood
+id widget_pulse
 id widget_root
 id widget_streak_value
 layout widget_streak

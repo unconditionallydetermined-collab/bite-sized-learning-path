@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animation-list xmlns:android="http://schemas.android.com/apk/res/android" android:oneshot="false">
+    <item android:drawable="@drawable/ring_3" android:duration="520" />
+    <item android:drawable="@drawable/ring_2" android:duration="380" />
+    <item android:drawable="@drawable/ring_1" android:duration="640" />
+    <item android:drawable="@drawable/ring_2" android:duration="300" />
+</animation-list>

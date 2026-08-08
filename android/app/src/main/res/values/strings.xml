@@ -5,5 +5,5 @@
     <string name="shortcut_lesson_long">Do a lesson</string>
     <string name="widget_label">BitQuest streak</string>
     <string name="widget_description">Your streak, gems and a one-tap lesson.</string>
-    <string name="widget_cta">Do a lesson →</string>
+    <string name="widget_cta">tap in</string>
 </resources>

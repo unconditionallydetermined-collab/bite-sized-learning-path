@@ -3,7 +3,7 @@
     <string name="app_name">BitQuest</string>
     <string name="shortcut_lesson_long">Do a lesson</string>
     <string name="shortcut_lesson_short">Lesson</string>
-    <string name="widget_cta">Do a lesson →</string>
+    <string name="widget_cta">tap in</string>
     <string name="widget_description">Your streak, gems and a one-tap lesson.</string>
     <string name="widget_label">BitQuest streak</string>
 </resources>

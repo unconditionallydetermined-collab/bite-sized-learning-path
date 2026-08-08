@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
@@ -18,6 +18,7 @@ import { UNIT_COMPLETE_BIT_INDEX, completeStreakDay, type StreakResult } from "@
 import { haptic } from "@/lib/haptics";
 import { recordLessonActivity } from "@/lib/notify";
 import { clearPlayhead } from "@/lib/playhead";
+import { flushPendingBits, markBitPending, pendingBitsFor } from "@/lib/pending-bits";
 import { recordCompletion, resetPace, shouldShowFullCelebration } from "@/lib/session-pace";
 import {
   awardGems,
@@ -80,12 +81,16 @@ function LearnPage() {
   const [streakBeat, setStreakBeat] = useState<StreakResult | null>(null);
   const [pendingChest, setPendingChest] = useState<GemDrop | null>(null);
   const [bitBeat, setBitBeat] = useState<{ gems: number; index: number } | null>(null);
+  /** Bits already paid out this session — gems are once per bit, ever. */
+  const awardedRef = useRef<Set<number>>(new Set());
   const mini = useMiniPlayer();
 
   const { data, isLoading } = useQuery({
     queryKey: ["unit", unitId, userId],
     enabled: Boolean(userId),
     queryFn: async () => {
+      // Flush any completion that was recorded locally before the app closed.
+      await flushPendingBits(userId);
       const [unitResult, bitResult] = await Promise.all([
         supabase
           .from("units")
@@ -95,9 +100,12 @@ function LearnPage() {
         supabase.from("bit_progress").select("bit_index").eq("unit_id", unitId).eq("user_id", userId),
       ]);
       if (unitResult.error) throw unitResult.error;
+      const done = (bitResult.data ?? []).map((row) => row.bit_index).filter((index) => index >= 0);
+      // Anything still queued locally counts as done for this render.
+      const merged = Array.from(new Set([...done, ...pendingBitsFor(unitId)]));
       return {
         unit: unitResult.data,
-        bitsDone: (bitResult.data ?? []).map((row) => row.bit_index).filter((index) => index >= 0),
+        bitsDone: merged,
       };
     },
   });
@@ -131,14 +139,24 @@ function LearnPage() {
   /** One bit finished: credit variable gems, maybe a chest, then advance. */
   const handleBitEnd = async () => {
     if (!activeBit || activeIndex === null) return;
+    // Synchronous, network-free record first: a bit that reached its end is
+    // never lost, even if the app is killed before the upsert lands.
+    markBitPending(unitId, activeBit.index, activeBit.seconds);
+    // Gems are idempotent per bit: a replay (or a re-watch caused by an older
+    // tracking bug) records completion but never pays twice.
+    const alreadyPaid =
+      awardedRef.current.has(activeBit.index) || bitsDone.includes(activeBit.index);
+    awardedRef.current.add(activeBit.index);
     await saveBit(activeBit);
     // Local-only activity histogram, used to time the daily reminder.
     recordLessonActivity(activeBit.seconds);
-    const drop = rollBitReward();
-    await awardGems(userId, drop.amount);
-    setRunGems((value) => value + drop.amount);
-    setRunBits((value) => value + 1);
-    await queryClient.invalidateQueries({ queryKey: ["profile", userId] });
+    const drop = alreadyPaid ? null : rollBitReward();
+    if (drop) {
+      await awardGems(userId, drop.amount);
+      setRunGems((value) => value + drop.amount);
+      setRunBits((value) => value + 1);
+      await queryClient.invalidateQueries({ queryKey: ["profile", userId] });
+    }
 
     const isLast = activeIndex + 1 >= bits.length;
     haptic("success");
@@ -149,12 +167,17 @@ function LearnPage() {
     const remaining = bits.length - (activeIndex + 1);
     const showFull = isLast || shouldShowFullCelebration(quick, remaining);
 
-    if (drop.kind === "chest") {
+    if (drop?.kind === "chest") {
       setChest(drop);
       return;
     }
     if (isLast) {
       void finishVideo();
+      return;
+    }
+    if (!drop) {
+      // Already-completed bit replayed: quietly move on, no reward theatre.
+      advance();
       return;
     }
     // Every bit gets a payoff: the full animated moment normally, and a light
