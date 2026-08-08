@@ -7,6 +7,12 @@
 export const LATE_NIGHT_BIT_SECONDS = 30;
 export const MIN_BIT_SECONDS = 60;
 export const MAX_BIT_SECONDS = 90;
+/**
+ * A trailing sliver shorter than this is folded into the previous bit. Short
+ * tails were unreliable to detect as "finished", which left a module showing a
+ * phantom incomplete bit, so no bit is ever this short.
+ */
+export const MIN_TAIL_SECONDS = 40;
 
 export function isLateNightWindow(now: Date = new Date()): boolean {
   return now.getHours() === 23 && now.getMinutes() >= 50;
@@ -31,8 +37,8 @@ export function buildBits(durationSeconds: number, now: Date = new Date()): Bit[
   while (start < duration && index < 400) {
     const planned = bitSecondsForIndex(index, now);
     let end = Math.min(duration, start + planned);
-    // Avoid a stubby final bit by absorbing anything under 20s.
-    if (duration - end < 20) end = duration;
+    // Absorb a stubby final bit (never leave a tail under ~40s).
+    if (duration - end < Math.min(MIN_TAIL_SECONDS, planned)) end = duration;
     bits.push({ index, start, end, seconds: end - start });
     start = end;
     index += 1;
